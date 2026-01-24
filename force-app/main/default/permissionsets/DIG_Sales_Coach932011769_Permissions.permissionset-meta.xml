@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Allows custom permissions for Agentforce Agent : DIG_Sales_Coach&apos;s agent user : dig_sales_coach@00dfn00000bxxzj1792565473.ext.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>DIG_Sales_Coach932011769 Permissions</label>
+    <license>Einstein Agent</license>
+</PermissionSet>

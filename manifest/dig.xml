@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+
+  <types>
+    <members>DIG_Service_Agent1660415870_Permissions</members>
+    <members>DIG_Sales_Coach932011769_Permissions</members>
+    <name>PermissionSet</name>
+  </types>
+
+  <types>
+    <members>CreateInbdContact_0Xxfn0000003QfV</members>
+    <members>customer_satisfaction</members>
+    <members>net_promoter_score</members>
+    <members>updateQualLead_0X9fn0000005h4L</members>
+    <members>updateQualLead_0X9fn0000005h5x</members>
+    <name>Flow</name>
+  </types>
+
+  <types>
+    <members>CreateInbdContact_0Xxfn0000003QfV</members>
+    <members>customer_satisfaction</members>
+    <members>net_promoter_score</members>
+    <members>updateQualLead_0X9fn0000005h4L</members>
+    <members>updateQualLead_0X9fn0000005h5x</members>
+    <name>FlowDefinition</name>
+  </types>
+
+  <types>
+    <members>In_App_Checklist_Settings__c</members>
+    <name>CustomObject</name>
+  </types>
+
+  <!-- Keep Layouts out for now (permission/noise) -->
+
+  <version>65.0</version>
+</Package>

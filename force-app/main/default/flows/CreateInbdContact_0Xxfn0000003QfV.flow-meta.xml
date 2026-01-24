@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <assignments>
+        <description>Sets the Account ID field on the contact record.</description>
+        <name>Set_Account_ID_on_Contact_Record</name>
+        <label>Set Account ID on Contact Record</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>contactRecord.AccountId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>accountRecordId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Contact_Record</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Sets the newly created Account Record ID to the output variable.</description>
+        <name>Set_Account_Record_ID</name>
+        <label>Set Account Record ID</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>accountRecordId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>accountRecord.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Set_Account_ID_on_Contact_Record</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Sets the newly created Contact record ID to the output variable.</description>
+        <name>Set_Contact_Record_ID</name>
+        <label>Set Contact Record ID</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>contactRecordId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>contactRecord.Id</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <description>Determines if an account record exists based on the information passed into the flow.</description>
+        <name>Does_Account_Exist</name>
+        <label>Does Account Exist</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Create_Account_Record</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>Account_Record_Exists</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Account_Record</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Account_ID_on_Contact_Record</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Determines if a contact record exists based on the information passed into the flow.</description>
+        <name>Does_Contact_Exist</name>
+        <label>Does Contact Exist</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Account_Record</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>Contact_Record_Exists</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Contact_Record</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <description>Searches for an existing contact record. If one isn’t found, creates a new contact record.</description>
+    <environments>Default</environments>
+    <interviewLabel>Inbound Web Create Contact {!$Flow.CurrentDateTime}</interviewLabel>
+    <isTemplate>true</isTemplate>
+    <label>Create an Inbound Contact Record</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <description>Creates an account record using the information passed into the flow if a matching account record doesn’t exist.</description>
+        <name>Create_Account_Record</name>
+        <label>Create Account Record</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Set_Account_Record_ID</targetReference>
+        </connector>
+        <inputReference>accountRecord</inputReference>
+    </recordCreates>
+    <recordCreates>
+        <description>Creates an contact record using the information passed into the flow if a matching contact record doesn’t exist.</description>
+        <name>Create_Contact_Record</name>
+        <label>Create Contact Record</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Set_Contact_Record_ID</targetReference>
+        </connector>
+        <inputReference>contactRecord</inputReference>
+    </recordCreates>
+    <recordLookups>
+        <description>Gets the account record based on the information passed into the flow, if one exists.</description>
+        <name>Get_Account_Record</name>
+        <label>Get Account Record</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Does_Account_Exist</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Name</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>accountRecord.Name</elementReference>
+            </value>
+        </filters>
+        <object>Account</object>
+        <outputAssignments>
+            <assignToReference>accountRecordId</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
+        <description>Gets the contact record based on the information passed into the flow, if one exists.</description>
+        <name>Get_Contact_Record</name>
+        <label>Get Contact Record</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Does_Contact_Exist</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>LastName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>contactRecord.LastName</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>contactRecord.Email</elementReference>
+            </value>
+        </filters>
+        <object>Contact</object>
+        <outputAssignments>
+            <assignToReference>accountRecordId</assignToReference>
+            <field>AccountId</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>contactRecordId</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+    </recordLookups>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Contact_Record</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>Stores the account record details to retrieve or create.</description>
+        <name>accountRecord</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Account</objectType>
+    </variables>
+    <variables>
+        <description>Stores the ID of the Account record found or created.</description>
+        <name>accountRecordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Stores the contact record details to retrieve or create.</description>
+        <name>contactRecord</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <description>Stores the ID of the Contact record found or created.</description>
+        <name>contactRecordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+</Flow>
