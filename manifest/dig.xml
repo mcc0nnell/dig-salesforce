@@ -4,12 +4,15 @@
   <types>
     <members>DIG_Service_Agent1660415870_Permissions</members>
     <members>DIG_Sales_Coach932011769_Permissions</members>
+    <members>DIG_Membership_Admin</members>
+    <members>DIG_Membership_Staff</members>
     <name>PermissionSet</name>
   </types>
 
   <types>
     <members>CreateInbdContact_0Xxfn0000003QfV</members>
     <members>customer_satisfaction</members>
+    <members>DIG_Membership_OnCreate</members>
     <members>net_promoter_score</members>
     <members>updateQualLead_0X9fn0000005h4L</members>
     <members>updateQualLead_0X9fn0000005h5x</members>
@@ -19,6 +22,7 @@
   <types>
     <members>CreateInbdContact_0Xxfn0000003QfV</members>
     <members>customer_satisfaction</members>
+    <members>DIG_Membership_OnCreate</members>
     <members>net_promoter_score</members>
     <members>updateQualLead_0X9fn0000005h4L</members>
     <members>updateQualLead_0X9fn0000005h5x</members>
@@ -27,6 +31,7 @@
 
   <types>
     <members>In_App_Checklist_Settings__c</members>
+    <members>Membership__c</members>
     <name>CustomObject</name>
   </types>
 
