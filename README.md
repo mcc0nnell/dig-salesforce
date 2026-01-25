@@ -19,8 +19,10 @@ make help
 make whoami
 make dig-retrieve
 make dig-validate
-sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml
 make org
+
+# Membership (combined slice)
+sf project deploy start --target-org dig --manifest manifest/membership-all-package.xml
 ```
 
 ## Project structure
@@ -30,8 +32,12 @@ make org
   - `dig-src/main/default/flowDefinitions/`
   - `dig-src/main/default/permissionsets/`
   - `dig-src/main/default/objects/`
-- `manifest/dig.xml` is the canonical DIG slice
-- `manifest/membership-mvp-package.xml` is a tight Membership MVP manifest
+- `manifest/dig.xml` is the canonical DIG slice (broader; use intentionally)
+- Membership manifests (tight scope)
+  - `manifest/membership-mvp-package.xml` (initial MVP slice)
+  - `manifest/membership-update-status-package.xml` (update-status flow only)
+  - `manifest/membership-all-package.xml` (object + fields + both flows + permsets)
+  - `manifest/membership-listviews-package.xml` (Membership list views)
 - `Makefile` provides standardized CLI targets
 - `agents.md` contains AI agent instructions
 
@@ -59,14 +65,34 @@ make dig-validate
 
 4) Deploy
 ```bash
-sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml
+sf project deploy start --target-org dig --manifest manifest/dig.xml
 ```
 
-## Membership MVP
+## Membership slice
 
-Targeted retrieve (tight scope):
+Retrieve (combined)
 ```bash
-sf project retrieve start --target-org dig --manifest manifest/membership-mvp-package.xml
+sf project retrieve start --target-org dig --manifest manifest/membership-all-package.xml
+```
+
+Deploy (combined)
+```bash
+sf project deploy start --target-org dig --manifest manifest/membership-all-package.xml
+```
+
+Renewal fields
+```bash
+sf project retrieve start --target-org dig --manifest manifest/membership-renewal-fields-package.xml
+```
+
+## Membership list views
+
+List views live under:
+- `dig-src/main/default/objects/Membership__c/listViews/`
+
+Retrieve list views
+```bash
+sf project retrieve start --target-org dig --manifest manifest/membership-listviews-package.xml
 ```
 
 ## Guardrails
