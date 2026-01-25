@@ -1,6 +1,6 @@
 # dig-sf
 
-Salesforce DX (SFDX) project for Deaf in Government (DIG). This repo keeps DIG-owned metadata in a clean source root and avoids pulling noisy org metadata unless explicitly needed.
+Salesforce DX (SFDX) project for Deaf in Government (DIG). This repo keeps DIG-owned metadata in a clean source root and avoids pulling noisy org metadata unless explicitly needed. It also documents the small but important UI-only configuration we’re choosing not to version in metadata.
 
 ## Quickstart
 
@@ -25,6 +25,18 @@ make org
 sf project deploy start --target-org dig --manifest manifest/membership-all-package.xml
 ```
 
+## What’s in-scope vs out-of-scope
+
+**In-scope (versioned in git)**
+- DIG-owned metadata under `dig-src/` (custom objects/fields, permission sets, flows *when stable*)
+- Manifests under `manifest/` that define deployable “slices”
+- Reports/Dashboards when we want versioned operational views
+
+**Out-of-scope (documented here; configured in UI)**
+- Lightning App navigation / pinned items / org home page tweaks
+- List Views (unless we intentionally decide to version them later)
+- Managed package metadata (we configure; we don’t own)
+
 ## Project structure
 
 - `dig-src/` is the authoritative source root
@@ -32,12 +44,12 @@ sf project deploy start --target-org dig --manifest manifest/membership-all-pack
   - `dig-src/main/default/flowDefinitions/`
   - `dig-src/main/default/permissionsets/`
   - `dig-src/main/default/objects/`
+  - `dig-src/main/default/reports/` (preferred for versioned ops views)
 - `manifest/dig.xml` is the canonical DIG slice (broader; use intentionally)
 - Membership manifests (tight scope)
   - `manifest/membership-mvp-package.xml` (initial MVP slice)
   - `manifest/membership-update-status-package.xml` (update-status flow only)
   - `manifest/membership-all-package.xml` (object + fields + both flows + permsets)
-  - `manifest/membership-listviews-package.xml` (Membership list views)
 - `Makefile` provides standardized CLI targets
 - `agents.md` contains AI agent instructions
 
@@ -68,6 +80,12 @@ make dig-validate
 sf project deploy start --target-org dig --manifest manifest/dig.xml
 ```
 
+## Data model decisions (current)
+
+- **Contact is the spine.** We track people as Contacts whether or not they are currently paid members.
+- Membership status is reflected via membership fields/records and reports (we can refine the exact schema later).
+- Campaigns stand on their own; Summit Events can associate events with campaigns.
+
 ## Membership slice
 
 Retrieve (combined)
@@ -85,18 +103,45 @@ Renewal fields
 sf project retrieve start --target-org dig --manifest manifest/membership-renewal-fields-package.xml
 ```
 
-## Membership list views
+## Wild Apricot import notes
 
-List views live under:
-- `dig-src/main/default/objects/Membership__c/listViews/`
+We imported members from Wild Apricot into Salesforce (Contacts). Some records were skipped due to **duplicate emails**; those can be scrubbed and re-imported later.
 
-Retrieve list views
-```bash
-sf project retrieve start --target-org dig --manifest manifest/membership-listviews-package.xml
-```
+Operational guidance:
+- Treat Contacts as the canonical person record.
+- Prefer importing into Contacts first, then linking/deriving membership status.
+- Keep an eye on duplicates and decide on a dedupe rule (email-first is usually fine for MVP).
+
+## UI configuration we’re not versioning (for now)
+
+We currently treat the items below as **UI-only configuration** (not retrieved into `dig-src`). Document changes here so the setup is reproducible.
+
+### Membership list views (UI)
+
+Reproducible checklist (created in UI):
+1) Active Members
+   - Status = Active
+2) Lapsed Members
+   - Status = Lapsed
+3) Renewals Due - Next 7 Days
+   - Status = Active
+   - Renewal Due Next 7 Days = True (field: `Renewal_Due_Next_7_Days__c`)
+4) Renewals Due - Next 30 Days
+   - Status = Active
+   - Renewal Due Next 30 Days = True (field: `Renewal_Due_Next_30_Days__c`)
+
+Note: if we need versioned ops views, prefer **Reports/Dashboards** (metadata) rather than List Views.
+
+### Lightning apps / navigation
+
+- The internal ops app is **DIG Ops** (renamed from the default Sales label).
+- Summit Events navigation has some limitations (e.g., favorites support varies). If the navbar can’t be made perfect, we prioritize **clarity + discoverability** over pixel-perfect parity.
 
 ## Guardrails
 
-- Do not retrieve or deploy layouts/profiles unless explicitly requested.
+- Do not retrieve or deploy layouts/profiles unless explicitly requested (avoid profile/layout drift).
+- Flows can be brittle as metadata; if deploy errors occur, prefer rebuilding in Flow Builder and then re-retrieving stable metadata.
 - Do not paste access tokens or auth secrets into logs or commits.
 - Keep commits small and focused.
+- List views for Membership are treated as UI configuration; document changes in README. Prefer Reports for versioned artifacts.
+- Document UI-only setup changes in this README so the org is reproducible even when metadata isn’t.
