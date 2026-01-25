@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <types>
+    <members>Membership__c</members>
+    <name>CustomObject</name>
+  </types>
+  <types>
+    <members>DIG_Membership_OnCreate</members>
+    <name>Flow</name>
+  </types>
+  <types>
+    <members>DIG_Membership_OnCreate</members>
+    <name>FlowDefinition</name>
+  </types>
+  <types>
+    <members>DIG_Membership_Admin</members>
+    <members>DIG_Membership_Staff</members>
+    <name>PermissionSet</name>
+  </types>
+  <version>65.0</version>
+</Package>
