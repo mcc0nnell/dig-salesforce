@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Renewal_Due_Next_7_Days__c</fullName>
+    <formula>AND(
+  NOT(ISBLANK(EndDate__c)),
+  EndDate__c &gt;= TODAY(),
+  EndDate__c &lt;= (TODAY() + 7)
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Renewal Due Next 7 Days</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>
