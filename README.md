@@ -1,18 +1,76 @@
-# Salesforce DX Project: Next Steps
+# dig-sf
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+Salesforce DX (SFDX) project for Deaf in Government (DIG). This repo keeps DIG-owned metadata in a clean source root and avoids pulling noisy org metadata unless explicitly needed.
 
-## How Do You Plan to Deploy Your Changes?
+## Quickstart
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+Prereqs
+- Salesforce CLI (`sf`) installed
+- Org alias `dig` authenticated
 
-## Configure Your Salesforce DX Project
+Verify org
+```bash
+sf org display --target-org dig
+```
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+Common commands
+```bash
+make help
+make whoami
+make dig-retrieve
+make dig-validate
+sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml
+make org
+```
 
-## Read All About It
+## Project structure
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+- `dig-src/` is the authoritative source root
+  - `dig-src/main/default/flows/`
+  - `dig-src/main/default/flowDefinitions/`
+  - `dig-src/main/default/permissionsets/`
+  - `dig-src/main/default/objects/`
+- `manifest/dig.xml` is the canonical DIG slice
+- `manifest/membership-mvp-package.xml` is a tight Membership MVP manifest
+- `Makefile` provides standardized CLI targets
+- `agents.md` contains AI agent instructions
+
+## Project-local defaults
+
+Set defaults for this repo (no global flags):
+- Default org (direct): `sf config set target-org deafingov`
+- Use alias as default: `sf config set target-org dig`
+- Optional Dev Hub: `sf config set target-dev-hub deafingov`
+- Verify: `sf config get target-org` and `sf config get target-dev-hub`
+
+## Standard workflow
+
+1) Retrieve only what you need
+```bash
+sf project retrieve start --target-org dig --manifest manifest/dig.xml
+```
+
+2) Edit metadata in `dig-src/`
+
+3) Validate before any deploy
+```bash
+make dig-validate
+```
+
+4) Deploy
+```bash
+sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml
+```
+
+## Membership MVP
+
+Targeted retrieve (tight scope):
+```bash
+sf project retrieve start --target-org dig --manifest manifest/membership-mvp-package.xml
+```
+
+## Guardrails
+
+- Do not retrieve or deploy layouts/profiles unless explicitly requested.
+- Do not paste access tokens or auth secrets into logs or commits.
+- Keep commits small and focused.
