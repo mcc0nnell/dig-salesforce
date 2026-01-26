@@ -31,11 +31,11 @@ Purpose: replace daily use of the managed “Summit Events” Lightning app with
 
 ## Retrieve the metadata after UI changes
 
-Replace the API names if they differ in your org.
+Replace the API names if they differ in your org. Current prod uses `standard__LightningSales` for the DIG Ops app and `DIG_Ops_Home1` for the Home page.
 
 ```bash
-sf project retrieve start --metadata "CustomApplication:DIG_Ops"
-sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home"
+sf project retrieve start --metadata "CustomApplication:standard__LightningSales"
+sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home1"
 ```
 
 ## Deploy using the manifest slice

@@ -166,10 +166,10 @@ Note: for stable, versioned operational views, prefer **Reports/Dashboards** rat
 
 ### Summit UI Slice
 
-Retrieve the app + home page metadata after UI changes:
+Retrieve the app + home page metadata after UI changes (replace API names if different; current prod uses `standard__LightningSales` and `DIG_Ops_Home1`):
 ```bash
-sf project retrieve start --metadata "CustomApplication:DIG_Ops"
-sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home"
+sf project retrieve start --metadata "CustomApplication:standard__LightningSales"
+sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home1"
 ```
 
 Deploy with the minimal manifest slice:
