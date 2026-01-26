@@ -6,11 +6,11 @@ Salesforce DX (SFDX) project for Deaf in Government (DIG). This repo keeps DIG-o
 
 Prereqs
 - Salesforce CLI (`sf`) installed
-- Org alias `dig` authenticated
+- Org alias `deafingov` authenticated
 
 Verify org
 ```bash
-sf org display --target-org dig
+sf org display --target-org deafingov
 ```
 
 Common commands
@@ -22,7 +22,7 @@ make dig-validate
 make org
 
 # Membership (combined slice)
-sf project deploy start --target-org dig --manifest manifest/membership-all-package.xml
+sf project deploy start --target-org deafingov --manifest manifest/membership-all-package.xml
 ```
 
 ## What’s in-scope vs out-of-scope
@@ -57,7 +57,7 @@ sf project deploy start --target-org dig --manifest manifest/membership-all-pack
 
 Set defaults for this repo (no global flags):
 - Default org (direct): `sf config set target-org deafingov`
-- Use alias as default: `sf config set target-org dig`
+- Use alias as default: `sf config set target-org deafingov`
 - Optional Dev Hub: `sf config set target-dev-hub deafingov`
 - Verify: `sf config get target-org` and `sf config get target-dev-hub`
 
@@ -65,7 +65,7 @@ Set defaults for this repo (no global flags):
 
 1) Retrieve only what you need
 ```bash
-sf project retrieve start --target-org dig --manifest manifest/dig.xml
+sf project retrieve start --target-org deafingov --manifest manifest/dig.xml
 ```
 
 2) Edit metadata in `dig-src/`
@@ -77,7 +77,7 @@ make dig-validate
 
 4) Deploy
 ```bash
-sf project deploy start --target-org dig --manifest manifest/dig.xml
+sf project deploy start --target-org deafingov --manifest manifest/dig.xml
 ```
 
 ## Data model decisions (current)
@@ -90,17 +90,17 @@ sf project deploy start --target-org dig --manifest manifest/dig.xml
 
 Retrieve (combined)
 ```bash
-sf project retrieve start --target-org dig --manifest manifest/membership-all-package.xml
+sf project retrieve start --target-org deafingov --manifest manifest/membership-all-package.xml
 ```
 
 Deploy (combined)
 ```bash
-sf project deploy start --target-org dig --manifest manifest/membership-all-package.xml
+sf project deploy start --target-org deafingov --manifest manifest/membership-all-package.xml
 ```
 
 Renewal fields
 ```bash
-sf project retrieve start --target-org dig --manifest manifest/membership-renewal-fields-package.xml
+sf project retrieve start --target-org deafingov --manifest manifest/membership-renewal-fields-package.xml
 ```
 
 ## Wild Apricot import notes
@@ -174,7 +174,7 @@ sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home"
 
 Deploy with the minimal manifest slice:
 ```bash
-sf project deploy start --manifest manifest/summit-ui.xml --target-org dig
+sf project deploy start --manifest manifest/summit-ui.xml --target-org deafingov
 ```
 
 ## Guardrails

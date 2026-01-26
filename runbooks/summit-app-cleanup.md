@@ -41,7 +41,7 @@ sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home"
 ## Deploy using the manifest slice
 
 ```bash
-sf project deploy start --manifest manifest/summit-ui.xml --target-org dig
+sf project deploy start --manifest manifest/summit-ui.xml --target-org deafingov
 ```
 
 ## Notes

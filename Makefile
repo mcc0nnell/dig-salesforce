@@ -7,7 +7,7 @@
 
 SHELL := /bin/bash
 
-ORG ?= dig
+ORG ?= deafingov
 SRC_DIR ?= dig-src
 MANIFEST ?= manifest/dig.xml
 
@@ -29,7 +29,7 @@ help:
 	@echo "  make force-deploy   - deploy from force-app (legacy / noisy)"
 	@echo ""
 	@echo "Vars:"
-	@echo "  ORG=dig SRC_DIR=dig-src MANIFEST=manifest/dig.xml"
+	@echo "  ORG=deafingov SRC_DIR=dig-src MANIFEST=manifest/dig.xml"
 
 org:
 	sf org open --target-org $(ORG)

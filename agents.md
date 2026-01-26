@@ -5,8 +5,8 @@
 DO
 - Do run `make dig-validate` before any deploy.
 - Do prefer retrieval via a tight manifest like `manifest/dig.xml`.
-- Do deploy using the target manifest: `sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml`.
-- Do treat `dig` as the default target org alias.
+- Do deploy using the target manifest: `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
+- Do treat `deafingov` as the default target org alias.
 - Do work primarily from `dig-src/`.
 
 DON'T
@@ -19,9 +19,9 @@ DON'T
 Use these exact commands:
 
 ```bash
-sf org display --target-org dig
+sf org display --target-org deafingov
 make dig-validate
-sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml
+sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml
 make dig-retrieve
 make org
 ```
@@ -37,7 +37,7 @@ make org
 1) Retrieve the minimal metadata you need.
 2) Edit metadata in `dig-src/`.
 3) Validate deployment with `make dig-validate`.
-4) Deploy with `sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml`.
+4) Deploy with `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
 
 Git hygiene
 - Use branches for changes.
@@ -46,7 +46,7 @@ Git hygiene
 
 PR notes must include
 - `git status --porcelain` output.
-- `sf project deploy start --target-org dig --manifest manifest/membership-mvp-package.xml --dry-run` results.
+- `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml --dry-run` results.
 
 ## Troubleshooting
 
