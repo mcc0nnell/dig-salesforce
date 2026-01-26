@@ -25,6 +25,16 @@ make org
 sf project deploy start --target-org deafingov --manifest manifest/membership-all-package.xml
 ```
 
+## Helper scripts (macOS/Linux)
+
+- Email/Comms: `scripts/email-comms.sh retrieve|deploy|validate`
+- Membership: `scripts/membership.sh <slice> <command>` (slices: `mvp`, `all`, `update-status`, `renewal-fields`)
+- Events (Summit UI): `scripts/events.sh retrieve|deploy|validate`
+- Canonical DIG: `scripts/dig.sh retrieve|deploy|validate`
+- Org info: `scripts/org.sh display|list`
+
+Windows note: run scripts with Git Bash or WSL, or run the underlying `sf ...` commands directly.
+
 ## What’s in-scope vs out-of-scope
 
 **In-scope (versioned in git)**
@@ -107,9 +117,24 @@ Retrieve after UI creation (templates + flow)
 sf project retrieve start --target-org deafingov --manifest manifest/email-comms.xml
 ```
 
+Helper script (macOS/Linux)
+```bash
+scripts/email-comms.sh retrieve
+```
+
 Deploy
 ```bash
 sf project deploy start --target-org deafingov --manifest manifest/email-comms.xml
+```
+
+Helper script (macOS/Linux)
+```bash
+scripts/email-comms.sh deploy
+```
+
+Validate (dry run)
+```bash
+scripts/email-comms.sh validate
 ```
 
 ## Membership slice

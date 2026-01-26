@@ -69,9 +69,16 @@ Option 2: **MailerSend** (recommended at scale)
 - Track: Lightning Email Templates, Flows/FlowDefinitions, throttling fields, and any required permission sets.
 - Avoid profiles/layouts unless explicitly required; document UI-only config here instead.
 
-## Windows note for helper scripts
+## Helper script
 
-The `scripts/*.sh` helpers are executable for macOS/Linux. On Windows, run them with:
+Use the mega script on macOS/Linux:
+- `scripts/email-comms.sh retrieve`
+- `scripts/email-comms.sh deploy`
+- `scripts/email-comms.sh validate`
+
+## Windows note for helper script
+
+The `scripts/email-comms.sh` helper is executable for macOS/Linux. On Windows, run it with:
 - Git Bash, or
 - WSL, or
 - run the underlying `sf ...` commands directly.
