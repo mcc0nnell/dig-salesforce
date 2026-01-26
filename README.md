@@ -1,19 +1,26 @@
 # dig-sf
 
-Salesforce DX (SFDX) project for Deaf in Government (DIG). This repo keeps DIG-owned metadata in a clean source root and avoids pulling noisy org metadata unless explicitly needed. It also documents the small but important UI-only configuration we’re choosing not to version in metadata.
+DIG’s Salesforce repo. Built to be **reproducible**, **sliceable**, and **immune to metadata sprawl**.
+
+The vibe:
+- **Small blast radius.** Deploy slices, not the universe.
+- **Noisy stuff stays out.** Profiles/layouts/managed package internals don’t get to ruin your diffs.
+- **UI-only changes are real.** If we do it in Setup, we write it down here.
+
+---
 
 ## Quickstart
 
-Prereqs
-- Salesforce CLI (`sf`) installed
-- Org alias `deafingov` authenticated
+### Prereqs
+- Salesforce CLI (`sf`)
+- Org alias authenticated: `deafingov`
 
-Verify org
+### Sanity check
 ```bash
 sf org display --target-org deafingov
 ```
 
-Common commands
+### Common moves
 ```bash
 make help
 make whoami
@@ -25,120 +32,114 @@ make org
 sf project deploy start --target-org deafingov --manifest manifest/membership-all-package.xml
 ```
 
+---
+
+## Repo map
+
+### Source of truth
+Everything DIG-owned lives under:
+- `dig-src/main/default/`
+  - `objects/`
+  - `permissionsets/`
+  - `flows/`
+  - `flowDefinitions/`
+  - `reports/` (preferred “ops views” that *can* be versioned)
+
+### Manifests (deployable slices)
+- Canonical (bigger): `manifest/dig.xml`
+
+Membership
+- `manifest/membership-mvp-package.xml`
+- `manifest/membership-update-status-package.xml`
+- `manifest/membership-all-package.xml`
+- `manifest/membership-renewal-fields-package.xml`
+
+Email/Comms
+- `manifest/email-comms.xml`
+
+Governance
+- `manifest/governance-mvp-package.xml`
+
+Summit UI
+- `manifest/summit-ui.xml`
+
+---
+
 ## Helper scripts (macOS/Linux)
 
+These wrap `sf ...` so you don’t fat-finger commands.
+
 - Email/Comms: `scripts/email-comms.sh retrieve|deploy|validate`
-- Membership: `scripts/membership.sh <slice> <command>` (slices: `mvp`, `all`, `update-status`, `renewal-fields`)
+- Membership: `scripts/membership.sh <slice> <command>`
+  - slices: `mvp`, `all`, `update-status`, `renewal-fields`
 - Events (Summit UI): `scripts/events.sh retrieve|deploy|validate`
 - Governance: `scripts/governance.sh retrieve|deploy|validate`
 - Canonical DIG: `scripts/dig.sh retrieve|deploy|validate`
 - Org info: `scripts/org.sh display|list`
 
-Windows note: run scripts with Git Bash or WSL, or run the underlying `sf ...` commands directly.
+Windows: use Git Bash/WSL or run the underlying `sf` commands directly.
 
-## What’s in-scope vs out-of-scope
+---
 
-**In-scope (versioned in git)**
-- DIG-owned metadata under `dig-src/` (custom objects/fields, permission sets, flows *when stable*)
-- Manifests under `manifest/` that define deployable “slices”
-- Reports/Dashboards when we want versioned operational views
+## Defaults (project-local)
 
-**Out-of-scope (documented here; configured in UI)**
-- Lightning App navigation / pinned items / org home page tweaks
-- List Views (unless we intentionally decide to version them later)
-- Managed package metadata (we configure; we don’t own)
+Set defaults for *this repo* (avoid global CLI drift):
+```bash
+sf config set target-org deafingov
+# optional
+sf config set target-dev-hub deafingov
 
-## Project structure
+sf config get target-org
+sf config get target-dev-hub
+```
 
-- `dig-src/` is the authoritative source root
-  - `dig-src/main/default/flows/`
-  - `dig-src/main/default/flowDefinitions/`
-  - `dig-src/main/default/permissionsets/`
-  - `dig-src/main/default/objects/`
-  - `dig-src/main/default/reports/` (preferred for versioned ops views)
-- `manifest/dig.xml` is the canonical DIG slice (broader; use intentionally)
-- Membership manifests (tight scope)
-  - `manifest/membership-mvp-package.xml` (initial MVP slice)
-  - `manifest/membership-update-status-package.xml` (update-status flow only)
-  - `manifest/membership-all-package.xml` (object + fields + both flows + permsets)
-- Email/Comms manifest (tight scope)
-  - `manifest/email-comms.xml` (templates + flow + throttling fields)
-- Governance manifest (tight scope)
-  - `manifest/governance-mvp-package.xml` (motions + votes + app + pages + permsets)
-- `Makefile` provides standardized CLI targets
-- `agents.md` contains AI agent instructions
+---
 
-## Project-local defaults
+## Standard workflow (don’t freestyle)
 
-Set defaults for this repo (no global flags):
-- Default org (direct): `sf config set target-org deafingov`
-- Use alias as default: `sf config set target-org deafingov`
-- Optional Dev Hub: `sf config set target-dev-hub deafingov`
-- Verify: `sf config get target-org` and `sf config get target-dev-hub`
-
-## Standard workflow
-
-1) Retrieve only what you need
+### 1) Retrieve only what you need
 ```bash
 sf project retrieve start --target-org deafingov --manifest manifest/dig.xml
 ```
 
-2) Edit metadata in `dig-src/`
+### 2) Edit in `dig-src/`
 
-3) Validate before any deploy
+### 3) Validate before you deploy
 ```bash
 make dig-validate
 ```
 
-4) Deploy
+### 4) Deploy a slice
 ```bash
 sf project deploy start --target-org deafingov --manifest manifest/dig.xml
 ```
 
+---
+
+## Scope rules
+
+### In-scope (versioned)
+- DIG-owned metadata under `dig-src/`
+  - custom objects/fields
+  - permission sets
+  - flows **when stable**
+  - reports/dashboards when we want versioned ops views
+- Manifests under `manifest/`
+
+### Out-of-scope (UI-only; documented here)
+- Lightning app navigation / pinned items / org home page tweaks
+- List Views (unless we intentionally decide to version later)
+- Managed package metadata (we configure it; we don’t own it)
+
+---
+
 ## Data model decisions (current)
 
-- **Contact is the spine.** We track people as Contacts whether or not they are currently paid members.
-- Membership status is reflected via membership fields/records and reports (we can refine the exact schema later).
+- **Contact is the spine.** People exist as Contacts whether or not they’re paid up.
+- Membership status is expressed via membership fields/records + reporting.
 - Campaigns stand on their own; Summit Events can associate events with campaigns.
 
-## Email/Comms slice
-
-What it does
-- Supports transactional renewal reminders via scheduled Flow + Lightning Email Templates.
-- Establishes throttling fields to prevent daily reminder spam.
-
-UI pre-reqs (org setup)
-- Setup -> Deliverability: Access Level = All Email
-- Setup -> Org-Wide Email Addresses: add/verify `membership@deafingov.org` (minimum)
-- Setup -> DKIM Keys: generate key(s) and publish the provided DNS CNAME(s)
-
-Runbook
-- `runbooks/email-comms.md`
-
-Retrieve after UI creation (templates + flow)
-```bash
-sf project retrieve start --target-org deafingov --manifest manifest/email-comms.xml
-```
-
-Helper script (macOS/Linux)
-```bash
-scripts/email-comms.sh retrieve
-```
-
-Deploy
-```bash
-sf project deploy start --target-org deafingov --manifest manifest/email-comms.xml
-```
-
-Helper script (macOS/Linux)
-```bash
-scripts/email-comms.sh deploy
-```
-
-Validate (dry run)
-```bash
-scripts/email-comms.sh validate
-```
+---
 
 ## Membership slice
 
@@ -152,10 +153,43 @@ Deploy (combined)
 sf project deploy start --target-org deafingov --manifest manifest/membership-all-package.xml
 ```
 
-Renewal fields
+Renewal fields only
 ```bash
 sf project retrieve start --target-org deafingov --manifest manifest/membership-renewal-fields-package.xml
 ```
+
+---
+
+## Email/Comms slice
+
+What it does
+- Renewal reminders via Scheduled Flow + Lightning Email Templates
+- Throttling so we don’t spam members daily
+
+UI prerequisites
+- Setup → Deliverability: Access Level = **All Email**
+- Setup → Org-Wide Email Addresses: add/verify `membership@deafingov.org`
+- Setup → DKIM Keys: generate key(s) + publish the provided DNS CNAME(s)
+
+Runbook
+- `runbooks/email-comms.md`
+
+Retrieve after UI creation
+```bash
+sf project retrieve start --target-org deafingov --manifest manifest/email-comms.xml
+```
+
+Deploy
+```bash
+sf project deploy start --target-org deafingov --manifest manifest/email-comms.xml
+```
+
+Validate (dry run)
+```bash
+sf project deploy validate --target-org deafingov --manifest manifest/email-comms.xml
+```
+
+---
 
 ## Governance MVP slice
 
@@ -167,96 +201,107 @@ Validate (dry run)
 sf project deploy validate --target-org deafingov --manifest manifest/governance-mvp-package.xml
 ```
 
-Deploy (MVP)
+Deploy
 ```bash
 sf project deploy start --target-org deafingov --manifest manifest/governance-mvp-package.xml
 ```
 
-Helper script (macOS/Linux)
-```bash
-scripts/governance.sh deploy
-```
+---
 
 ## Wild Apricot import notes
 
 We imported members from Wild Apricot into Salesforce (Contacts). Some records were skipped due to **duplicate emails**; those can be scrubbed and re-imported later.
 
-Operational guidance:
-- Treat Contacts as the canonical person record.
-- Prefer importing into Contacts first, then linking/deriving membership status.
-- Keep an eye on duplicates and decide on a dedupe rule (email-first is usually fine for MVP).
+Ops guidance
+- Contacts are canonical.
+- Import Contacts first; derive/link membership second.
+- Pick a dedupe rule early (email-first is fine for MVP).
 
-## UI configuration we’re not versioning (for now)
+---
 
-We currently treat the items below as **UI-only configuration** (not retrieved into `dig-src`). Document changes here so the setup is reproducible.
+## UI configuration (not versioned yet)
 
 ### Membership list views (UI)
 
-Reproducible checklist (created in UI):
-1) Active Members
+Repro checklist:
+1) **Active Members**
    - Status = Active
-2) Lapsed Members
+2) **Lapsed Members**
    - Status = Lapsed
-3) Renewals Due - Next 7 Days
+3) **Renewals Due – Next 7 Days**
    - Status = Active
-   - Renewal Due Next 7 Days = True (field: `Renewal_Due_Next_7_Days__c`)
-4) Renewals Due - Next 30 Days
+   - `Renewal_Due_Next_7_Days__c` = True
+4) **Renewals Due – Next 30 Days**
    - Status = Active
-   - Renewal Due Next 30 Days = True (field: `Renewal_Due_Next_30_Days__c`)
+   - `Renewal_Due_Next_30_Days__c` = True
 
-Note: if we need versioned ops views, prefer **Reports/Dashboards** (metadata) rather than List Views.
-
+Rule of thumb: if we need something durable and shareable, prefer **Reports/Dashboards** over List Views.
 
 ### Lightning apps / navigation
 
-- The internal ops app is **DIG Ops** (renamed from the default Sales label).
-- Summit Events navigation has some limitations (e.g., favorites support varies). If the navbar can’t be made perfect, we prioritize **clarity + discoverability** over pixel-perfect parity.
-- Current preference: keep **DIG Ops** navigation minimal (Home only) and use App Launcher/search for Summit objects.
+- Internal ops app label is **DIG Ops** (renamed from the default Sales label).
+- Summit navigation is “good enough.” We prioritize **findability** over perfection.
+- Preference: keep DIG Ops nav minimal (Home) and use App Launcher/search for Summit objects.
 
-### Summit Events (DIG standard)
+---
 
-We run **all events** in DIG using Summit Events — from informal coffee hours to major conferences (e.g., **NTC**).
+## Summit Events standard (DIG doctrine)
 
-### Summit Events Doctrine
+We run **all events** in DIG using Summit Events — coffee hours to major conferences (e.g., **NTC**).
 
-We standardize on Summit for every event so operations stay consistent, reporting stays centralized, and staff can rely on one system of record regardless of event size or format. Summit is managed-package infrastructure; our ownership is the DIG app shell and the way we present Summit to users.
+Why
+- One system of record
+- Centralized reporting
+- One workflow staff can learn once
 
-Current posture:
-- Summit is the **system of record for event operations** (event types, instances/occurrences, registration/payments).
-- We treat Summit as a **managed package**: configure in UI, document choices here, and avoid pulling Summit-owned metadata into `dig-src`.
+Posture
+- Summit is the **system of record for event operations** (types, instances, registrations/payments).
+- Summit is a **managed package**: configure in UI, document choices here, avoid pulling Summit-owned metadata into `dig-src/`.
 
-Operational conventions (keep it simple):
-- Use **Appointment Types / Event Types** to represent the category of event (Coffee Hour, Webinar, Training, NTC, etc.).
-- Use **Instances** to represent specific dates/times (occurrences) of an event type.
-- When an event supports an outreach goal, tie it to a **Campaign** (Campaigns stand on their own; Summit events may associate).
-- Use **Payments/Registration** only when needed; free events still live in Summit as types + instances.
+Operational conventions
+- **Appointment Types / Event Types** = category (Coffee Hour, Webinar, Training, NTC, …)
+- **Instances** = specific dates/times (occurrences)
+- Use **Campaigns** for outreach goals; associate Summit events as needed
+- Payments/registration only when needed; free events still get types + instances
 
-Minimal smoke test (after any config changes):
+Minimal smoke test
 1) Create/confirm an Appointment Type
 2) Create an Instance for a future date/time
 3) (Optional) Associate to a Campaign
-4) Validate that ops users can find the records from **DIG Ops** navigation
+4) Confirm ops users can find records from **DIG Ops**
 
-Note: for stable, versioned operational views, prefer **Reports/Dashboards** rather than relying on managed-package list views or navbar behavior.
+### Summit UI slice
 
-### Summit UI Slice
-
-Retrieve the app + home page metadata after UI changes (replace API names if different; current prod uses `standard__LightningSales` and `DIG_Ops_Home1`):
+Retrieve the app + home page metadata after UI changes (API names may differ; current prod uses `standard__LightningSales` and `DIG_Ops_Home1`):
 ```bash
-sf project retrieve start --metadata "CustomApplication:standard__LightningSales"
-sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home1"
+sf project retrieve start --target-org deafingov --metadata "CustomApplication:standard__LightningSales"
+sf project retrieve start --target-org deafingov --metadata "FlexiPage:DIG_Ops_Home1"
 ```
 
-Deploy with the minimal manifest slice:
+Deploy
 ```bash
-sf project deploy start --manifest manifest/summit-ui.xml --target-org deafingov
+sf project deploy start --target-org deafingov --manifest manifest/summit-ui.xml
 ```
+
+---
 
 ## Guardrails
 
-- Do not retrieve or deploy layouts/profiles unless explicitly requested (avoid profile/layout drift).
-- Flows can be brittle as metadata; if deploy errors occur, prefer rebuilding in Flow Builder and then re-retrieving stable metadata.
-- Do not paste access tokens or auth secrets into logs or commits.
-- Keep commits small and focused.
-- List views for Membership are treated as UI configuration; document changes in README. Prefer Reports for versioned artifacts.
-- Document UI-only setup changes in this README so the org is reproducible even when metadata isn’t.
+- **No layouts/profiles** unless explicitly requested.
+- Flows are fragile as metadata; if deploy breaks, rebuild/re-save in Flow Builder, then re-retrieve.
+- Never commit secrets.
+- Keep commits small and surgical.
+- UI-only setup changes must be written here.
+
+---
+
+## Troubleshooting
+
+### Flow deploy failures
+If a Flow deploy fails with structure/metadata errors:
+1) Rebuild or re-save the Flow in Flow Builder (UI)
+2) Re-retrieve just the Flow + FlowDefinition
+3) Validate and deploy again
+
+### “Why isn’t X in git?”
+If it’s app nav, list views, pinned items, org homepage tweaks, or managed-package behavior: it’s probably **intentionally UI-only**. Document it in this README.
