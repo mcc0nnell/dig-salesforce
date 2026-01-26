@@ -19,12 +19,11 @@ This repo keeps DIG-owned metadata in `dig-src/main/default/`, slices it into sm
 | --- | --- | --- |
 | `manifest/governance-mvp.xml` | Governance objects + tabs, flexipages, permission sets | `sf project deploy start --target-org deafingov --manifest manifest/governance-mvp.xml` |
 | `manifest/membership-core.xml` | Membership object, supporting fields, flows, and permission sets | `sf project deploy start --target-org deafingov --manifest manifest/membership-core.xml` |
-| `manifest/ops-listviews.xml` | DIG Ops Case list views that validate reliably | `sf project deploy start --target-org deafingov --manifest manifest/ops-listviews.xml` |
-| `manifest/ops-reports.xml` | DIG Ops Admin report folder (reports themselves live in quarantine) | `sf project deploy start --target-org deafingov --manifest manifest/ops-reports.xml` |
-| `manifest/ops-dashboards.xml` | DIG Ops Admin dashboard folder (dashboards are quarantined) | `sf project deploy start --target-org deafingov --manifest manifest/ops-dashboards.xml` |
 | `manifest/quarantine.xml` | Known-broken list views/reports/dashboards | Use only for diagnosis/retrieval | 
 
-*Existing raw manifests live under `manifest/_archive/` (legacy names such as `dig_ops_dashboards.xml`). Use the new slices for day-to-day deploys.*
+Back-compat manifests that operators may still use:
+- `manifest/membership-mvp-package.xml` (legacy “MVP” membership slice; kept for existing deploy muscle memory).
+- `manifest/governance-mvp-package.xml` (legacy governance slice; identical intent to `manifest/governance-mvp.xml`).
 
 ### Helpful wrappers
 ```bash
@@ -39,7 +38,7 @@ make deploy-membership         # deploy membership core slice
 - Core objects (Case, Membership, Ops_Change_Log) should land before UI metadata that depends on them.
 
 ## Known issues & quarantine
-- A growing list of DIG Ops reports, dashboards, and the `Case.This_Week` list view break deployments because the folder ordering and filters collide with other metadata. Copies live in `fixtures/_incoming/broken/` and their entries appear in `manifest/quarantine.xml` so we can catalog and revisit them safely.
+- Quarantine is for metadata we want tracked but not shipped by default. In this repo it currently captures experimental UI metadata (see `manifest/quarantine.xml`) and is excluded from normal validate/deploy via `.forceignore`.
 - Avoid retrieving or deploying the quarantine manifest during routine releases; pull it only when you need to inspect why a component keeps failing.
 
 ## Inventory & metadata guidance
@@ -48,8 +47,8 @@ make deploy-membership         # deploy membership core slice
 - Use `manifest/dig.xml` (or a tight slice manifest) when a change spans multiple modules.
 
 ## Runbooks and deeper guidance
-- Slice deploy playbook: `docs/runbooks/deploy-slices.md` (plus the other runbooks under `docs/runbooks/ops` and `docs/runbooks/lightning`).
-- Use `docs/runbooks/ops/` runbooks for case, queue, email-to-case, and reporting setup that can’t live purely in source.
+- Slice deploy playbook: `docs/runbooks/deploy-slices.md`.
+- Add new operator docs under `docs/runbooks/`.
 
 ## Local housekeeping
 - `tmp/` holds ephemeral files (ignored by Git), `fixtures/_incoming/` stages problematic metadata, and `scripts/` contains helper wrappers like `scripts/membership.sh`.
