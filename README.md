@@ -1,6 +1,8 @@
-# dig-sf
+# DIG Ops
 
-DIG’s Salesforce repo. Built to be **reproducible**, **sliceable**, and **immune to metadata sprawl**.
+DIG Ops is a Salesforce-based operational spine for Deaf in Government — covering membership, events, governance, and service intake, built with SFDX for durability, transparency, and automation. 
+
+Built to be **reproducible**, **sliceable**, and **immune to metadata sprawl**.
 
 The vibe:
 - **Small blast radius.** Deploy slices, not the universe.
