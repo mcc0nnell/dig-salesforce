@@ -1,7 +1,8 @@
 # deafingov Salesforce
 
-Operations-friendly Salesforce source for *deafingov*.
-This repo keeps DIG-owned metadata in `dig-src/main/default/`, slices it into small manifests, and captures operator runbooks for retrieval/deploy/cleanup.
+The repo slices metadata into narrow targets so DIG Ops can validate and deploy only what changed instead of shipping the entire org. Each slice focuses on a single domain (governance, membership, etc.) and only references metadata that we know deploys cleanly, keeping the blast radius small.
+
+Operations-friendly Salesforce source for *deafingov*. DIG-owned metadata lives in `dig-src/main/default/`, is deployed via small manifests, and is supported by operator runbooks under `docs/runbooks/`.
 
 ## Quick setup & validation
 1. Authenticate and point `sf` at the default org:
