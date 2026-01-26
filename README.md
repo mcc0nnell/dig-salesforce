@@ -132,10 +132,50 @@ Reproducible checklist (created in UI):
 
 Note: if we need versioned ops views, prefer **Reports/Dashboards** (metadata) rather than List Views.
 
+
 ### Lightning apps / navigation
 
 - The internal ops app is **DIG Ops** (renamed from the default Sales label).
 - Summit Events navigation has some limitations (e.g., favorites support varies). If the navbar can’t be made perfect, we prioritize **clarity + discoverability** over pixel-perfect parity.
+
+### Summit Events (DIG standard)
+
+We run **all events** in DIG using Summit Events — from informal coffee hours to major conferences (e.g., **NTC**).
+
+### Summit Events Doctrine
+
+We standardize on Summit for every event so operations stay consistent, reporting stays centralized, and staff can rely on one system of record regardless of event size or format. Summit is managed-package infrastructure; our ownership is the DIG app shell and the way we present Summit to users.
+
+Current posture:
+- Summit is the **system of record for event operations** (event types, instances/occurrences, registration/payments).
+- We treat Summit as a **managed package**: configure in UI, document choices here, and avoid pulling Summit-owned metadata into `dig-src`.
+
+Operational conventions (keep it simple):
+- Use **Appointment Types / Event Types** to represent the category of event (Coffee Hour, Webinar, Training, NTC, etc.).
+- Use **Instances** to represent specific dates/times (occurrences) of an event type.
+- When an event supports an outreach goal, tie it to a **Campaign** (Campaigns stand on their own; Summit events may associate).
+- Use **Payments/Registration** only when needed; free events still live in Summit as types + instances.
+
+Minimal smoke test (after any config changes):
+1) Create/confirm an Appointment Type
+2) Create an Instance for a future date/time
+3) (Optional) Associate to a Campaign
+4) Validate that ops users can find the records from **DIG Ops** navigation
+
+Note: for stable, versioned operational views, prefer **Reports/Dashboards** rather than relying on managed-package list views or navbar behavior.
+
+### Summit UI Slice
+
+Retrieve the app + home page metadata after UI changes:
+```bash
+sf project retrieve start --metadata "CustomApplication:DIG_Ops"
+sf project retrieve start --metadata "FlexiPage:DIG_Ops_Home"
+```
+
+Deploy with the minimal manifest slice:
+```bash
+sf project deploy start --manifest manifest/summit-ui.xml --target-org dig
+```
 
 ## Guardrails
 

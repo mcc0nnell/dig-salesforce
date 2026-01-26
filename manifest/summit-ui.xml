@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>DIG_Ops</members>
+        <name>CustomApplication</name>
+    </types>
+    <types>
+        <members>DIG_Ops_Home</members>
+        <name>FlexiPage</name>
+    </types>
+    <version>60.0</version>
+</Package>
