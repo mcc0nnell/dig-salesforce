@@ -1,0 +1,18 @@
+Dashboard Information for DIG_Ops_Admin_Cockpit
+
+DeveloperName: DIG_Ops_Admin_Cockpit
+Title: DIG Ops Admin - Cockpit
+FolderId: Not directly available in metadata files
+
+From the metadata files, we can determine:
+- The dashboard is located in the DIG_Ops_Admin folder
+- The dashboard title is "DIG Ops Admin - Cockpit"
+- The dashboard contains the following reports:
+  - DIG_Ops_Admin/Open_by_Status
+  - DIG_Ops_Admin/Overdue
+  - DIG_Ops_Admin/Blocked
+  - DIG_Ops_Admin/Waiting_on_Requester
+  - DIG_Ops_Admin/Closed_This_Week
+  - DIG_Ops_Admin/Work_by_Category
+
+Note: The FolderId is not directly stored in the metadata files. In Salesforce, folder IDs are typically system-generated and would need to be retrieved via the Tooling API or other means. The folder name is "DIG Ops Admin" as shown in the folder metadata file.

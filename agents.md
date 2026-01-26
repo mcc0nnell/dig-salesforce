@@ -5,7 +5,7 @@
 DO
 - Do run `make dig-validate` before any deploy.
 - Do prefer retrieval via a tight manifest like `manifest/dig.xml`.
-- Do deploy using the target manifest: `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
+- Do deploy using the target manifest: `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml` (after DIG Ops Admin slices when both are in scope).
 - Do treat `deafingov` as the default target org alias.
 - Do work primarily from `dig-src/`.
 
@@ -25,6 +25,7 @@ sf project deploy start --target-org deafingov --manifest manifest/membership-mv
 make dig-retrieve
 make org
 ```
+If DIG Ops Admin is in scope, deploy its manifests first (see README), then deploy membership.
 
 ## Project structure
 
@@ -37,7 +38,7 @@ make org
 1) Retrieve the minimal metadata you need.
 2) Edit metadata in `dig-src/`.
 3) Validate deployment with `make dig-validate`.
-4) Deploy with `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
+4) Deploy DIG Ops Admin manifests first (if in scope), then deploy `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
 
 Git hygiene
 - Use branches for changes.
