@@ -50,6 +50,8 @@ sf project deploy start --target-org deafingov --manifest manifest/membership-al
   - `manifest/membership-mvp-package.xml` (initial MVP slice)
   - `manifest/membership-update-status-package.xml` (update-status flow only)
   - `manifest/membership-all-package.xml` (object + fields + both flows + permsets)
+- Email/Comms manifest (tight scope)
+  - `manifest/email-comms.xml` (templates + flow + throttling fields)
 - `Makefile` provides standardized CLI targets
 - `agents.md` contains AI agent instructions
 
@@ -85,6 +87,30 @@ sf project deploy start --target-org deafingov --manifest manifest/dig.xml
 - **Contact is the spine.** We track people as Contacts whether or not they are currently paid members.
 - Membership status is reflected via membership fields/records and reports (we can refine the exact schema later).
 - Campaigns stand on their own; Summit Events can associate events with campaigns.
+
+## Email/Comms slice
+
+What it does
+- Supports transactional renewal reminders via scheduled Flow + Lightning Email Templates.
+- Establishes throttling fields to prevent daily reminder spam.
+
+UI pre-reqs (org setup)
+- Setup -> Deliverability: Access Level = All Email
+- Setup -> Org-Wide Email Addresses: add/verify `membership@deafingov.org` (minimum)
+- Setup -> DKIM Keys: generate key(s) and publish the provided DNS CNAME(s)
+
+Runbook
+- `runbooks/email-comms.md`
+
+Retrieve after UI creation (templates + flow)
+```bash
+sf project retrieve start --target-org deafingov --manifest manifest/email-comms.xml
+```
+
+Deploy
+```bash
+sf project deploy start --target-org deafingov --manifest manifest/email-comms.xml
+```
 
 ## Membership slice
 
@@ -137,6 +163,7 @@ Note: if we need versioned ops views, prefer **Reports/Dashboards** (metadata) r
 
 - The internal ops app is **DIG Ops** (renamed from the default Sales label).
 - Summit Events navigation has some limitations (e.g., favorites support varies). If the navbar can’t be made perfect, we prioritize **clarity + discoverability** over pixel-perfect parity.
+- Current preference: keep **DIG Ops** navigation minimal (Home only) and use App Launcher/search for Summit objects.
 
 ### Summit Events (DIG standard)
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <types>
+    <members>DIG Email/Membership Renewal - Next 7 Days</members>
+    <members>DIG Email/Membership Renewal - Next 30 Days</members>
+    <members>DIG Email/Membership Lapsed</members>
+    <name>LightningEmailTemplate</name>
+  </types>
+  <types>
+    <members>DIG_Membership_Renewal_Reminders</members>
+    <name>Flow</name>
+  </types>
+  <types>
+    <members>DIG_Membership_Renewal_Reminders</members>
+    <name>FlowDefinition</name>
+  </types>
+  <types>
+    <members>Membership__c.Last_Renewal_Reminder_7D_Sent__c</members>
+    <members>Membership__c.Last_Renewal_Reminder_30D_Sent__c</members>
+    <name>CustomField</name>
+  </types>
+  <version>65.0</version>
+</Package>

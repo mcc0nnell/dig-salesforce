@@ -9,7 +9,8 @@ Purpose: replace daily use of the managed “Summit Events” Lightning app with
 3) App Options
    - Branding is optional; keep defaults if unsure.
 4) Navigation Items (recommended)
-   - Summit objects: Appointment Types / Event Instances / Registrations / Payments (and other Summit objects that exist)
+   - Minimal daily driver: **Home only** (Summit objects remain accessible via App Launcher/search)
+   - If ops needs tabs, add Summit objects: Appointment Types / Event Instances / Registrations / Payments (and other Summit objects that exist)
    - Contacts
    - Campaigns
    - Reports
