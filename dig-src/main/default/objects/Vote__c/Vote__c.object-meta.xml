@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Vote</label>
+    <pluralLabel>Votes</pluralLabel>
+    <nameField>
+        <label>Vote Name</label>
+        <type>Text</type>
+        <length>80</length>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>Private</sharingModel>
+</CustomObject>

@@ -30,6 +30,7 @@ sf project deploy start --target-org deafingov --manifest manifest/membership-al
 - Email/Comms: `scripts/email-comms.sh retrieve|deploy|validate`
 - Membership: `scripts/membership.sh <slice> <command>` (slices: `mvp`, `all`, `update-status`, `renewal-fields`)
 - Events (Summit UI): `scripts/events.sh retrieve|deploy|validate`
+- Governance: `scripts/governance.sh retrieve|deploy|validate`
 - Canonical DIG: `scripts/dig.sh retrieve|deploy|validate`
 - Org info: `scripts/org.sh display|list`
 
@@ -62,6 +63,8 @@ Windows note: run scripts with Git Bash or WSL, or run the underlying `sf ...` c
   - `manifest/membership-all-package.xml` (object + fields + both flows + permsets)
 - Email/Comms manifest (tight scope)
   - `manifest/email-comms.xml` (templates + flow + throttling fields)
+- Governance manifest (tight scope)
+  - `manifest/governance-mvp-package.xml` (motions + votes + app + pages + permsets)
 - `Makefile` provides standardized CLI targets
 - `agents.md` contains AI agent instructions
 
@@ -152,6 +155,26 @@ sf project deploy start --target-org deafingov --manifest manifest/membership-al
 Renewal fields
 ```bash
 sf project retrieve start --target-org deafingov --manifest manifest/membership-renewal-fields-package.xml
+```
+
+## Governance MVP slice
+
+Runbook
+- `runbooks/flexipage-lightning-app.md`
+
+Validate (dry run)
+```bash
+sf project deploy validate --target-org deafingov --manifest manifest/governance-mvp-package.xml
+```
+
+Deploy (MVP)
+```bash
+sf project deploy start --target-org deafingov --manifest manifest/governance-mvp-package.xml
+```
+
+Helper script (macOS/Linux)
+```bash
+scripts/governance.sh deploy
 ```
 
 ## Wild Apricot import notes
