@@ -13,7 +13,7 @@ If you’ve ever thought *“I wish our nonprofit ran like a well-instrumented s
 
 ## What this is (in one sentence)
 
-**A Salesforce-first operating system for Deaf in Government** — membership, programs, fundraising, Summit events, and board motions — designed to be auditable, deployable, and automation-friendly.
+**A Salesforce-first operating system for Deaf in Government** — membership, programs, Summit events, and board motions — designed to be auditable, deployable, and automation-friendly.
 
 ---
 
