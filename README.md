@@ -1,3 +1,14 @@
+# DIG Salesforce: the Deaf-in-Government Control Room 🛰️
+
+Welcome to the **DIG Salesforce** project — a practical, opinionated Salesforce org + repo that turns “we should be tracking this” into **real objects, real workflows, and real dashboards**.
+
+This repo is built like a *field kit*:
+- sturdy enough for day-to-day ops,
+- clear enough for board governance,
+- flexible enough to grow into **Geary Muni** (the automation runner / metadata chef).
+
+If you’ve ever thought *“I wish our nonprofit ran like a well-instrumented system”* — this is that.
+
 # DIG Ops
 
 DIG Ops is a Salesforce-based operational spine for Deaf in Government — covering membership, events, governance, and service intake, built with SFDX for durability, transparency, and automation. 
@@ -229,3 +240,18 @@ If a Flow deploy fails with structure/metadata errors:
 
 ### “Why isn’t X in git?”
 If it’s app nav, list views, pinned items, org homepage tweaks, or managed-package behavior: it’s probably **intentionally UI-only**. Document it in this README.
+
+## License / ownership
+
+This repo represents operational infrastructure for **Deaf in Government (DIG)**.
+If you reuse patterns, awesome — just don’t reuse branding or member data.
+
+---
+
+## One last thing
+
+This project is intentionally built like a *control room*.
+Not flashy — **reliable**.
+Not theoretical — **used**.
+
+If you’re reading this, you’re already in the room.
