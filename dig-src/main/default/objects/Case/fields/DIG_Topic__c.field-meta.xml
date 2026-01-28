@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+  <fullName>DIG_Topic__c</fullName>
+  <label>DIG Topic</label>
+  <type>Picklist</type>
+  <valueSet>
+    <valueSetDefinition>
+      <sorted>false</sorted>
+      <value><fullName>Membership</fullName><default>false</default><label>Membership</label></value>
+      <value><fullName>Summit</fullName><default>false</default><label>Summit</label></value>
+      <value><fullName>Governance</fullName><default>false</default><label>Governance</label></value>
+      <value><fullName>Sponsorship</fullName><default>false</default><label>Sponsorship</label></value>
+      <value><fullName>General</fullName><default>true</default><label>General</label></value>
+    </valueSetDefinition>
+  </valueSet>
+</CustomField>

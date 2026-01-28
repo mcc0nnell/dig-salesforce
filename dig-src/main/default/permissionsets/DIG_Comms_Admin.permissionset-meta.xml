@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>DIG Comms Admin</label>
+
+    <objectPermissions>
+        <object>Comms_Preference__c</object>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <viewAllRecords>true</viewAllRecords>
+        <modifyAllRecords>true</modifyAllRecords>
+    </objectPermissions>
+
+    <objectPermissions>
+        <object>Comms_Message__c</object>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <viewAllRecords>true</viewAllRecords>
+        <modifyAllRecords>true</modifyAllRecords>
+    </objectPermissions>
+
+    <fieldPermissions>
+        <field>Comms_Preference__c.Contact__c</field>
+        <readable>true</readable>
+        <editable>true</editable>
+    </fieldPermissions>
+</PermissionSet>
