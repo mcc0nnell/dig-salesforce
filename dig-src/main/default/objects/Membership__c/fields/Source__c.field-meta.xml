@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>Status__c</fullName>
-    <label>Status</label>
+    <fullName>Source__c</fullName>
+    <label>Source</label>
     <required>false</required>
-    <trackHistory>true</trackHistory>
+    <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
     <type>Picklist</type>
     <valueSet>
@@ -11,29 +11,29 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>Pending</fullName>
+                <fullName>Manual</fullName>
                 <default>true</default>
-                <label>Pending</label>
+                <label>Manual</label>
             </value>
             <value>
-                <fullName>Active</fullName>
+                <fullName>Web</fullName>
                 <default>false</default>
-                <label>Active</label>
+                <label>Web</label>
             </value>
             <value>
-                <fullName>Grace</fullName>
+                <fullName>Import</fullName>
                 <default>false</default>
-                <label>Grace</label>
+                <label>Import</label>
             </value>
             <value>
-                <fullName>Lapsed</fullName>
+                <fullName>Summit</fullName>
                 <default>false</default>
-                <label>Lapsed</label>
+                <label>Summit</label>
             </value>
             <value>
-                <fullName>Cancelled</fullName>
+                <fullName>Other</fullName>
                 <default>false</default>
-                <label>Cancelled</label>
+                <label>Other</label>
             </value>
         </valueSetDefinition>
     </valueSet>

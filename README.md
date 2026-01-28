@@ -100,6 +100,34 @@ sf project deploy start -o deafingov --manifest manifest/governance-mvp-package.
 
 ---
 
+## Membership Engine (Apex-first, flowless core)
+
+Deterministic Apex automation computes membership status from `Membership__c` terms and writes a Contact “membership spine” for fast reporting. Admins adjust behavior via Custom Metadata Types (levels, grace windows, renewal notices). No Flow metadata is required for the core engine.
+
+### Deploy (target org: `deafingov`)
+```bash
+sf project deploy start --target-org deafingov --manifest manifest/membership-engine-mvp-package.xml
+```
+
+### Schedule daily renewal notices (9:05 AM org time)
+```apex
+System.schedule('DIG Membership Daily Job', '0 5 9 * * ?', new DigOps_MembershipDailyJob());
+```
+
+### How it works (summary)
+- `Membership__c` holds term history; “current term” is the non-cancelled term with the latest end date.
+- Status derivation is deterministic (Active/Grace/Lapsed/Pending/Cancelled).
+- Contact summary fields (`Is_Current_Member__c`, `Membership_Status_Summary__c`, etc.) are computed in Apex.
+- `Is_Current_Member__c` is true only for **Active** (Grace is tracked separately).
+- A daily job creates deduped renewal Tasks based on CMDT notice windows.
+
+### Smoke test checklist
+- Create a Contact.
+- Create a `Membership__c` term with `StartDate__c <= today`, `EndDate__c` in the future, `Level__c = INDIVIDUAL`, and `PaidDate__c` set.
+- Verify Contact summary fields update: `Membership_Status_Summary__c`, `Membership_End_Date__c`, `Current_Membership_Level__c`, `Member_Since__c`, `Membership_Last_Paid_Date__c`, `Is_Current_Member__c`.
+- Change the term `EndDate__c` to yesterday and verify **Grace** (or **Lapsed** after grace window) and `Is_Current_Member__c = false`.
+- Run the daily job again → Tasks are created once per notice window and do not duplicate on rerun.
+
 ## The “Geary Muni” direction (why this repo has rocket fuel)
 
 This repo is also a proving ground for **Geary Muni**:
