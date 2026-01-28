@@ -213,6 +213,25 @@ python tools/geary/geary.py install lwc --target-org deafingov
 
 Troubleshooting:
 - “LWC present” note in `doctor` → ensure CSP Trusted Sites / CORS endpoints exist for external API calls.
+
+## CSP Trusted Sites (optional)
+CSP Trusted Sites metadata lives in:
+- `dig-src/main/default/cspTrustedSites/`
+
+Deploy with:
+```bash
+python tools/geary/geary.py install csp --target-org deafingov
+```
+
+Bundle LWC + CSP with an alias (if both slices exist):
+```yaml
+aliases:
+  lwc-web:
+    includes: [lwc, csp]
+```
+
+Troubleshooting:
+- If LWCs call external endpoints, add `CSPTrustedSite` metadata and deploy the `csp` slice.
 - Profiles are noisy and often permission-gated; deploy them only if required.
 
 ## FAQ

@@ -7,6 +7,10 @@
 ```bash
 python tools/geary/geary.py install comms-web --target-org deafingov
 ```
+Alternate alias (full chain via slices.yml):
+```bash
+python tools/geary/geary.py install comms-web-full --target-org deafingov
+```
 
 ## Sequence (deterministic)
 1) `objects-case`

@@ -10,6 +10,12 @@ dist/
 tmp/
 .tmp/
 
+# Geary generated artifacts
+geary/out/
+manifest/slice-*.xml
+logs/
+tools/geary/__pycache__/
+
 # Misc
 .DS_Store
 *.log
