@@ -126,6 +126,10 @@ See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
 
 ---
 
+## Runbooks
+- Comms schema + perms + apex + LWC deployment runbook (production-safe). See `docs/runbooks/comms-stack-deploy.md`.
+- Geary comms-web deterministic install change log. See `docs/notes/geary-comms-web-change-log.md`.
+
 ## Membership Engine (Apex-first, flowless core)
 
 Deterministic Apex automation computes membership status from `Membership__c` terms and writes a Contact “membership spine” for fast reporting. Admins adjust behavior via Custom Metadata Types (levels, grace windows, renewal notices). No Flow metadata is required for the core engine.
