@@ -8,6 +8,7 @@ node_modules/
 # Build artifacts & temp
 dist/
 tmp/
+.tmp/
 
 # Misc
 .DS_Store
