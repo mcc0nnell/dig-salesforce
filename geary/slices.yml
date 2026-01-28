@@ -41,6 +41,6 @@ aliases:
   comms-web:
     includes: [lwc, csp]
   comms-web-full:
-    includes: [objects-case, objects-comms, apex-comms-core, comms-perms, lwc-web]
+    includes: [objects-case, objects-comms, apex-comms-core, permissionsets, lwc, csp]
   comms-all:
     includes: [objects-comms, objects-case, permissionsets, apex-comms-core, lwc, csp]
