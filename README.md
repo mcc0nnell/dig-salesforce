@@ -128,6 +128,47 @@ System.schedule('DIG Membership Daily Job', '0 5 9 * * ?', new DigOps_Membership
 - Change the term `EndDate__c` to yesterday and verify **Grace** (or **Lapsed** after grace window) and `Is_Current_Member__c = false`.
 - Run the daily job again → Tasks are created once per notice window and do not duplicate on rerun.
 
+---
+
+## Membership Panel (LWC)
+
+Staff-facing Lightning Web Component for searching Contacts, viewing membership summary, and creating renewal terms using Apex (no Flows).
+Deploy uses RunSpecifiedTests due to org-wide coverage constraints; validated set: ControllerTest + ServiceTest + DailyJobTest.
+
+### Membership Panel runbook (copy/paste)
+```bash
+# validate
+sf project deploy validate --target-org deafingov \
+  --manifest manifest/membership-panel-mvp-package.xml \
+  --test-level RunSpecifiedTests \
+  --tests DigOps_MembershipControllerTest \
+  --tests DigOps_MembershipServiceTest \
+  --tests DigOps_MembershipDailyJobTest \
+  --verbose
+
+# deploy
+sf project deploy start --target-org deafingov \
+  --manifest manifest/membership-panel-mvp-package.xml \
+  --test-level RunSpecifiedTests \
+  --tests DigOps_MembershipControllerTest \
+  --tests DigOps_MembershipServiceTest \
+  --tests DigOps_MembershipDailyJobTest \
+  --verbose
+
+# setup: assign permission set
+sf org assign permset --target-org deafingov --name DIG_Ops_Membership
+```
+
+Setup (UI)
+1) Open Lightning App Builder for the Contact Record Page.
+2) Drag **digMembershipPanel** onto the page.
+3) Save and activate for the desired apps/profiles.
+
+Smoke test
+- Search for a Contact and select it.
+- Create a renewal term (Level + dates) and submit.
+- Confirm Contact summary fields refresh and the new term appears in the table.
+
 ## The “Geary Muni” direction (why this repo has rocket fuel)
 
 This repo is also a proving ground for **Geary Muni**:
