@@ -1,12 +1,15 @@
-.sfdx/
-.sf/
-.DS_Store
+# Node dependencies
 node_modules/
-**/*.log
-docs/
 
 # Salesforce local state
+.sf/
 .sfdx/
 
-# Salesforce local state
-.sfdx/
+# Build artifacts & temp
+dist/
+tmp/
+.tmp/
+
+# Misc
+.DS_Store
+*.log

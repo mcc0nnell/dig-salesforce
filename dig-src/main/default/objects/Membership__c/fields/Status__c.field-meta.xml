@@ -21,6 +21,11 @@
                 <label>Active</label>
             </value>
             <value>
+                <fullName>Grace</fullName>
+                <default>false</default>
+                <label>Grace</label>
+            </value>
+            <value>
                 <fullName>Lapsed</fullName>
                 <default>false</default>
                 <label>Lapsed</label>

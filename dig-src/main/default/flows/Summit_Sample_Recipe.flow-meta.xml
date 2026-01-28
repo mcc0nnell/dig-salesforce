@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Flow>
+  <apiVersion>65.0</apiVersion>
+  <label>Summit_Sample_Recipe</label>
+  <status>Active</status>
+  <decisions>
+    <name>Summit_Sample_Recipe__D_Decision</name>
+    <label>Decision: "Proceed?"</label>
+    <rules>
+      <name>Summit_Sample_Recipe__D_No_Rule</name>
+      <label>No</label>
+      <connector>
+        <targetReference>Summit_Sample_Recipe__End_End</targetReference>
+      </connector>
+    </rules>
+    <rules>
+      <name>Summit_Sample_Recipe__D_Yes_Rule</name>
+      <label>Yes</label>
+      <connector>
+        <targetReference>Summit_Sample_Recipe__B_Action</targetReference>
+      </connector>
+    </rules>
+  </decisions>
+  <screens>
+    <name>Summit_Sample_Recipe__S1_Screen</name>
+    <label>Summit overview</label>
+    <nextLabel>Continue</nextLabel>
+    <fields>
+      <name>display_Overview_1</name>
+      <fieldType>DisplayText</fieldType>
+      <fieldText>Summit sample flow with LWC + Apex.</fieldText>
+    </fields>
+    <fields>
+      <name>lwc_Overview_1</name>
+      <fieldType>ComponentInstance</fieldType>
+      <extensionName>c:digMembershipPanel</extensionName>
+      <fieldText>Membership panel</fieldText>
+    </fields>
+    <connector>
+      <targetReference>Summit_Sample_Recipe__A_Action</targetReference>
+    </connector>
+  </screens>
+  <actions>
+    <name>Summit_Sample_Recipe__A_Action</name>
+    <label>A</label>
+    <actionType>RecordCreate</actionType>
+    <targetObject>Summit__c</targetObject>
+    <connector>
+      <targetReference>Summit_Sample_Recipe__X_Action</targetReference>
+    </connector>
+  </actions>
+  <actions>
+    <name>Summit_Sample_Recipe__B_Action</name>
+    <label>B</label>
+    <actionType>RecordUpdate</actionType>
+    <targetObject>Summit__c</targetObject>
+    <connector>
+      <targetReference>Summit_Sample_Recipe__End_End</targetReference>
+    </connector>
+  </actions>
+  <actions>
+    <name>Summit_Sample_Recipe__X_Action</name>
+    <label>X</label>
+    <actionType>Apex</actionType>
+    <targetObject>DigOps_MembershipRules.apply</targetObject>
+    <connector>
+      <targetReference>Summit_Sample_Recipe__D_Decision</targetReference>
+    </connector>
+  </actions>
+  <end>
+    <name>Summit_Sample_Recipe__End_End</name>
+    <label>End</label>
+  </end>
+  <start>
+    <label>Start</label>
+    <connector>
+      <targetReference>Summit_Sample_Recipe__S1_Screen</targetReference>
+    </connector>
+  </start>
+</Flow>

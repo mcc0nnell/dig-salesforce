@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Deprecated: kept for history; see `manifest/quarantine.xml`. -->
     <types>
         <members>standard__LightningSales</members>
         <name>CustomApplication</name>

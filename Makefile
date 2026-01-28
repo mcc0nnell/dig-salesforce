@@ -13,6 +13,8 @@ MANIFEST ?= manifest/dig.xml
 
 .PHONY: help org whoami list \
         dig-validate dig-deploy dig-retrieve dig-pull \
+        deploy-governance deploy-membership \
+        deploy-membership-panel validate-membership-panel \
         force-validate force-deploy \
         clean
 
@@ -25,6 +27,10 @@ help:
 	@echo "  make dig-validate   - dry-run deploy from $(SRC_DIR)"
 	@echo "  make dig-deploy     - deploy from $(SRC_DIR)"
 	@echo "  make dig-pull       - pull tracked changes from org (if source tracking)"
+	@echo "  make deploy-governance - deploy governance MVP slice manifest"
+	@echo "  make deploy-membership - deploy membership core slice manifest"
+	@echo "  make deploy-membership-panel - deploy membership panel slice manifest"
+	@echo "  make validate-membership-panel - validate membership panel slice manifest"
 	@echo "  make force-validate - dry-run deploy from force-app (legacy / noisy)"
 	@echo "  make force-deploy   - deploy from force-app (legacy / noisy)"
 	@echo ""
@@ -49,6 +55,30 @@ dig-validate:
 
 dig-deploy:
 	sf project deploy start --target-org $(ORG) --source-dir $(SRC_DIR)
+
+deploy-governance:
+	sf project deploy start --target-org $(ORG) --manifest manifest/governance-mvp.xml
+
+deploy-membership:
+	sf project deploy start --target-org $(ORG) --manifest manifest/membership-core.xml
+
+validate-membership-panel:
+	sf project deploy validate --target-org $(ORG) \
+	  --manifest manifest/membership-panel-mvp-package.xml \
+	  --test-level RunSpecifiedTests \
+	  --tests DigOps_MembershipControllerTest \
+	  --tests DigOps_MembershipServiceTest \
+	  --tests DigOps_MembershipDailyJobTest \
+	  --verbose
+
+deploy-membership-panel:
+	sf project deploy start --target-org $(ORG) \
+	  --manifest manifest/membership-panel-mvp-package.xml \
+	  --test-level RunSpecifiedTests \
+	  --tests DigOps_MembershipControllerTest \
+	  --tests DigOps_MembershipServiceTest \
+	  --tests DigOps_MembershipDailyJobTest \
+	  --verbose
 
 dig-pull:
 	sf project pull --target-org $(ORG)

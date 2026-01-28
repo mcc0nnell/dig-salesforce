@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <types>
+    <members>Motion__c</members>
+    <members>Vote__c</members>
+    <name>CustomObject</name>
+  </types>
+  <types>
+    <members>Motion__c</members>
+    <members>Vote__c</members>
+    <name>CustomTab</name>
+  </types>
+  <types>
+    <members>DIG_Governance</members>
+    <name>CustomApplication</name>
+  </types>
+  <types>
+    <members>DIG_Governance_Home</members>
+    <members>Motion_Record_Page</members>
+    <members>Vote_Record_Page</members>
+    <name>FlexiPage</name>
+  </types>
+  <types>
+    <members>DIG_Board_Gov</members>
+    <members>DIG_Gov_Admin</members>
+    <members>DIG_Member_Gov</members>
+    <name>PermissionSet</name>
+  </types>
+  <version>65.0</version>
+</Package>
+

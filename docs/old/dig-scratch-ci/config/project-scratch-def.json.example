@@ -1,0 +1,10 @@
+{
+  "orgName": "DIG CI Scratch",
+  "edition": "Developer",
+  "features": [],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    }
+  }
+}

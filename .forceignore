@@ -10,3 +10,7 @@ package.xml
 
 # LWC Jest
 **/__tests__/**
+
+# Quarantine / cruft (tracked, but excluded from normal validate/deploy)
+dig-src/main/default/applications/standard__LightningSales.app-meta.xml
+dig-src/main/default/flexipages/DIG_Ops_Home1.flexipage-meta.xml

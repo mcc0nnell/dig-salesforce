@@ -1,0 +1,158 @@
+<template>
+    <lightning-card title="Membership Panel">
+        <div class="slds-p-around_medium">
+            <lightning-input
+                type="search"
+                label="Find a Contact"
+                value={searchQuery}
+                onchange={handleSearchChange}
+            ></lightning-input>
+            <template if:true={searchResults.length}>
+                <ul class="slds-m-top_x-small slds-box slds-box_xx-small">
+                    <template for:each={searchResults} for:item="result">
+                        <li key={result.id} class="slds-p-vertical_x-small">
+                            <button
+                                class="slds-button slds-button_reset slds-text-link"
+                                data-id={result.id}
+                                onclick={handleSelectContact}
+                            >
+                                {result.name} • {result.email}
+                            </button>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+        </div>
+
+        <template if:true={selectedContactName}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <div class="slds-text-heading_small">Selected: {selectedContactName}</div>
+            </div>
+        </template>
+
+        <template if:true={panelData}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <lightning-card title="Membership Summary">
+                    <div class="slds-p-around_medium">
+                        <div class="slds-grid slds-wrap">
+                            <div class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                                <strong>Status:</strong> {panelData.contact.membershipStatus}
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                                <strong>End Date:</strong>
+                                <lightning-formatted-date-time value={panelData.contact.membershipEndDate}>
+                                </lightning-formatted-date-time>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                                <strong>Level:</strong> {panelData.contact.currentLevel}
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                                <strong>Member Since:</strong>
+                                <lightning-formatted-date-time value={panelData.contact.memberSince}>
+                                </lightning-formatted-date-time>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                                <strong>Last Paid:</strong>
+                                <lightning-formatted-date-time value={panelData.contact.lastPaidDate}>
+                                </lightning-formatted-date-time>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                                <strong>Is Current:</strong> {panelData.contact.isCurrentMember}
+                            </div>
+                        </div>
+                        <div class="slds-m-top_small">
+                            <lightning-button
+                                label="Recompute"
+                                onclick={handleRecompute}
+                                variant="brand"
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </lightning-card>
+            </div>
+
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <lightning-card title="Renew Membership">
+                    <div class="slds-p-around_medium">
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    label="Level"
+                                    value={renewalLevel}
+                                    onchange={handleLevelChange}
+                                    required
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    label="Source"
+                                    value={renewalSource}
+                                    onchange={handleSourceChange}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    type="date"
+                                    label="Start Date"
+                                    value={renewalStartDate}
+                                    onchange={handleStartDateChange}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    type="date"
+                                    label="End Date"
+                                    value={renewalEndDate}
+                                    onchange={handleEndDateChange}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    type="date"
+                                    label="Paid Date"
+                                    value={renewalPaidDate}
+                                    onchange={handlePaidDateChange}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    label="Payment Ref"
+                                    value={renewalPaymentRef}
+                                    onchange={handlePaymentRefChange}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1">
+                                <lightning-textarea
+                                    label="Notes"
+                                    value={renewalNotes}
+                                    onchange={handleNotesChange}
+                                ></lightning-textarea>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_small">
+                            <lightning-button
+                                label="Create Renewal"
+                                variant="brand"
+                                onclick={handleCreateRenewal}
+                                disabled={isCreateDisabled}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </lightning-card>
+            </div>
+
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <lightning-card title="Latest Membership Terms">
+                    <div class="slds-p-around_medium">
+                        <lightning-datatable
+                            key-field="id"
+                            data={panelData.terms}
+                            columns={termColumns}
+                            hide-checkbox-column
+                        ></lightning-datatable>
+                    </div>
+                </lightning-card>
+            </div>
+        </template>
+    </lightning-card>
+</template>

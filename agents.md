@@ -5,7 +5,7 @@
 DO
 - Do run `make dig-validate` before any deploy.
 - Do prefer retrieval via a tight manifest like `manifest/dig.xml`.
-- Do deploy using the target manifest: `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
+- Do deploy using the target manifest: `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml` (after DIG Ops Admin slices when both are in scope).
 - Do treat `deafingov` as the default target org alias.
 - Do work primarily from `dig-src/`.
 
@@ -25,19 +25,31 @@ sf project deploy start --target-org deafingov --manifest manifest/membership-mv
 make dig-retrieve
 make org
 ```
+If DIG Ops Admin is in scope, deploy its manifests first (see README), then deploy membership.
 
 ## Project structure
 
 - `dig-src/main/default/` contains DIG-owned metadata (flows, permission sets, custom objects).
 - `force-app/` is legacy/noisy and should be avoided unless explicitly requested.
 - `manifest/dig.xml` defines the canonical DIG metadata slice for retrieval.
+- `geary/` + `tools/geary/` provide the Geary slice builder + recipe compiler (see `geary.md`).
+- `recipes/` contains Mermaid-based Flow recipes compiled into `dig-src/main/default/flows/`.
+
+## Geary + Recipes
+
+- Run `python tools/geary/geary.py update --root .` after adding or changing metadata that affects slices.
+- Use `python tools/geary/geary.py recipe compile --root .` after editing anything under `recipes/`.
+- Recipe compiler outputs deterministic Flow XML to `dig-src/main/default/flows/` and maintains `geary/out/recipes.lock.json`.
+- Keep recipe output deterministic: no timestamps, stable ordering.
+- Recipes can include LWC screen components (`type: lwc` in `screens:`); ensure the LWC bundle exists under `dig-src/main/default/lwc/`.
+- Apex actions in recipes must reference existing classes/methods; deploy may require tests (see `geary.md`).
 
 ## Standard workflow
 
 1) Retrieve the minimal metadata you need.
 2) Edit metadata in `dig-src/`.
 3) Validate deployment with `make dig-validate`.
-4) Deploy with `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
+4) Deploy DIG Ops Admin manifests first (if in scope), then deploy `sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml`.
 
 Git hygiene
 - Use branches for changes.

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <!-- Start with the essentials; expand as needed -->
+  <types><members>*</members><name>PermissionSet</name></types>
+  <types><members>*</members><name>PermissionSetGroup</name></types>
+  <types><members>*</members><name>CustomObject</name></types>
+  <types><members>*</members><name>CustomField</name></types>
+  <types><members>*</members><name>RecordType</name></types>
+  <!-- REMOVE this line for now -->
+  <!-- <types><members>*</members><name>Layout</name></types> -->
+  <types><members>*</members><name>Flow</name></types>
+  <types><members>*</members><name>FlowDefinition</name></types>
+  <types><members>*</members><name>CustomMetadata</name></types>
+  <version>65.0</version>
+</Package>

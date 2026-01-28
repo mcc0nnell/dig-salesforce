@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+  <!--
+    Quarantined metadata (safe to keep in source, but excluded from core slices).
+    If you retrieve or fix an item here, capture it under `fixtures/_incoming/`.
+  -->
+  <types>
+    <members>standard__LightningSales</members>
+    <name>CustomApplication</name>
+  </types>
+  <types>
+    <members>DIG_Ops_Home1</members>
+    <name>FlexiPage</name>
+  </types>
+  <version>65.0</version>
+</Package>
+

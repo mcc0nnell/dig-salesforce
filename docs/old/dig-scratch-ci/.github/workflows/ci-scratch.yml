@@ -1,0 +1,54 @@
+name: CI (Scratch Org Validate)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli
+
+      - name: Write JWT key
+        run: |
+          echo "${{ secrets.SF_JWT_KEY_B64 }}" | base64 --decode > server.key
+          chmod 600 server.key
+
+      - name: Auth Dev Hub (JWT)
+        env:
+          SF_DEVHUB_USERNAME: ${{ secrets.SF_DEVHUB_USERNAME }}
+          SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
+          SF_INSTANCE_URL: ${{ secrets.SF_INSTANCE_URL }}
+        run: |
+          sf org login jwt             --client-id "$SF_CLIENT_ID"             --jwt-key-file server.key             --username "$SF_DEVHUB_USERNAME"             --instance-url "$SF_INSTANCE_URL"             --set-default-dev-hub             --alias devhub
+
+      - name: Create scratch org
+        run: |
+          # If your repo uses a different scratch def path, update this line:
+          sf org create scratch             --definition-file config/project-scratch-def.json             --target-dev-hub devhub             --alias dig-ci             --duration-days 1             --set-default             --wait 20
+
+      - name: Validate (repo)
+        run: |
+          # Prefer your repo's Makefile wrapper if present:
+          if make help >/dev/null 2>&1; then
+            make dig-validate
+          else
+            # Fallback: deploy/validate a manifest (adjust to your manifest path)
+            sf project deploy start --manifest manifest/dig.xml --dry-run --wait 30
+          fi
+
+      - name: Cleanup scratch org
+        if: always()
+        run: |
+          sf org delete scratch --target-org dig-ci --no-prompt || true
