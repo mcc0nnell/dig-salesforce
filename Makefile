@@ -13,6 +13,7 @@ MANIFEST ?= manifest/dig.xml
 
 .PHONY: help org whoami list \
         dig-validate dig-deploy dig-retrieve dig-pull \
+        deploy-apex validate-apex retrieve-apex \
         deploy-governance deploy-membership \
         deploy-membership-panel validate-membership-panel \
         force-validate force-deploy \
@@ -31,6 +32,9 @@ help:
 	@echo "  make deploy-membership - deploy membership core slice manifest"
 	@echo "  make deploy-membership-panel - deploy membership panel slice manifest"
 	@echo "  make validate-membership-panel - validate membership panel slice manifest"
+	@echo "  make deploy-apex      - deploy apex-classes + apex-triggers slices"
+	@echo "  make validate-apex    - validate apex-classes + apex-triggers slices"
+	@echo "  make retrieve-apex    - retrieve apex-classes + apex-triggers slices"
 	@echo "  make force-validate - dry-run deploy from force-app (legacy / noisy)"
 	@echo "  make force-deploy   - deploy from force-app (legacy / noisy)"
 	@echo ""
@@ -49,6 +53,18 @@ list:
 
 dig-retrieve:
 	sf project retrieve start --target-org $(ORG) --manifest $(MANIFEST)
+
+validate-apex:
+	sf project deploy start --target-org $(ORG) --manifest manifest/slice-apex-classes.xml --test-level RunLocalTests --dry-run
+	sf project deploy start --target-org $(ORG) --manifest manifest/slice-apex-triggers.xml --test-level RunLocalTests --dry-run
+
+deploy-apex:
+	sf project deploy start --target-org $(ORG) --manifest manifest/slice-apex-classes.xml --test-level RunLocalTests
+	sf project deploy start --target-org $(ORG) --manifest manifest/slice-apex-triggers.xml --test-level RunLocalTests
+
+retrieve-apex:
+	sf project retrieve start --target-org $(ORG) --manifest manifest/slice-apex-classes.xml
+	sf project retrieve start --target-org $(ORG) --manifest manifest/slice-apex-triggers.xml
 
 dig-validate:
 	sf project deploy start --target-org $(ORG) --source-dir $(SRC_DIR) --dry-run
