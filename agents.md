@@ -32,6 +32,17 @@ If DIG Ops Admin is in scope, deploy its manifests first (see README), then depl
 - `dig-src/main/default/` contains DIG-owned metadata (flows, permission sets, custom objects).
 - `force-app/` is legacy/noisy and should be avoided unless explicitly requested.
 - `manifest/dig.xml` defines the canonical DIG metadata slice for retrieval.
+- `geary/` + `tools/geary/` provide the Geary slice builder + recipe compiler (see `geary.md`).
+- `recipes/` contains Mermaid-based Flow recipes compiled into `dig-src/main/default/flows/`.
+
+## Geary + Recipes
+
+- Run `python tools/geary/geary.py update --root .` after adding or changing metadata that affects slices.
+- Use `python tools/geary/geary.py recipe compile --root .` after editing anything under `recipes/`.
+- Recipe compiler outputs deterministic Flow XML to `dig-src/main/default/flows/` and maintains `geary/out/recipes.lock.json`.
+- Keep recipe output deterministic: no timestamps, stable ordering.
+- Recipes can include LWC screen components (`type: lwc` in `screens:`); ensure the LWC bundle exists under `dig-src/main/default/lwc/`.
+- Apex actions in recipes must reference existing classes/methods; deploy may require tests (see `geary.md`).
 
 ## Standard workflow
 

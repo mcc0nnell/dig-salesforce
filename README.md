@@ -100,6 +100,21 @@ sf project deploy start -o deafingov --manifest manifest/governance-mvp-package.
 
 ---
 
+## Geary Muni (apt-get for metadata slices)
+Geary Muni is the repo’s slice builder + deploy wrapper. It scans package directories (typically `dig-src`), generates deterministic slice manifests, resolves dashboard→report dependencies, and lets you deploy by friendly aliases. It also includes a Recipes compiler that turns Mermaid flowcharts into deterministic Flow XML with a lockfile.
+
+Quick summary:
+- Build slices/registry: `python tools/geary/geary.py update --root .`
+- List slices/aliases: `python tools/geary/geary.py list`
+- Health checks: `python tools/geary/geary.py doctor --root .`
+- Install a slice: `python tools/geary/geary.py install flows --target-org deafingov`
+- Recipes: `python tools/geary/geary.py recipe compile --root .`
+- Recipes support LWC screen components via `type: lwc` (see `geary.md`).
+
+See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
+
+---
+
 ## Membership Engine (Apex-first, flowless core)
 
 Deterministic Apex automation computes membership status from `Membership__c` terms and writes a Contact “membership spine” for fast reporting. Admins adjust behavior via Custom Metadata Types (levels, grace windows, renewal notices). No Flow metadata is required for the core engine.
