@@ -13,12 +13,15 @@ REPORT_FOLDER_SUFFIX = ".reportFolder-meta.xml"
 DASHBOARD_FOLDER_SUFFIX = ".dashboardFolder-meta.xml"
 
 TYPE_ORDER = [
+    "CustomObject",
+    "CustomField",
     "Flow",
     "ApexClass",
     "ApexTrigger",
     "ApexTestSuite",
     "LightningComponentBundle",
     "AuraDefinitionBundle",
+    "CSPTrustedSite",
     "PermissionSet",
     "Profile",
     "ReportFolder",
@@ -124,6 +127,7 @@ def ensure_alias_file(alias_path: Path, slice_names):
         "all-apex-triggers": {"includes": ["apex-triggers"], "withDeps": False},
         "all-lwc": {"includes": ["lwc"], "withDeps": False},
         "all-aura": {"includes": ["aura"], "withDeps": False},
+        "lwc-web": {"includes": ["lwc", "csp"], "withDeps": False},
         "all-permissionsets": {"includes": ["permissionsets"], "withDeps": False},
         "all-profiles": {"includes": ["profiles"], "withDeps": False},
         "summit-reports": {"includes": ["reports-summit__SummitEventsReports"], "withDeps": False},
@@ -222,6 +226,8 @@ def resolve_package_dirs(root: Path, override_paths):
 
 def compute_counts(members_by_type):
     return {
+        "customObjects": len(members_by_type.get("CustomObject", [])),
+        "customFields": len(members_by_type.get("CustomField", [])),
         "dashboards": len(members_by_type.get("Dashboard", [])),
         "reports": len(members_by_type.get("Report", [])),
         "folders": len(members_by_type.get("DashboardFolder", [])) + len(members_by_type.get("ReportFolder", [])),
@@ -231,6 +237,7 @@ def compute_counts(members_by_type):
         "apexTestSuites": len(members_by_type.get("ApexTestSuite", [])),
         "lwc": len(members_by_type.get("LightningComponentBundle", [])),
         "aura": len(members_by_type.get("AuraDefinitionBundle", [])),
+        "csp": len(members_by_type.get("CSPTrustedSite", [])),
         "permissionSets": len(members_by_type.get("PermissionSet", [])),
         "profiles": len(members_by_type.get("Profile", [])),
     }
@@ -268,8 +275,12 @@ def main():
     apex_test_suites = []
     lwc_bundles = []
     aura_bundles = []
+    csp_sites = []
     permission_sets = []
     profiles = []
+    custom_objects = []
+    custom_fields = []
+    fields_by_object = {}
     reports_by_folder = {}
     dashboards_by_folder = {}
     report_folders = set()
@@ -291,6 +302,11 @@ def main():
         test_suites_dir = base / "testSuites"
         lwc_dir = base / "lwc"
         aura_dir = base / "aura"
+        csp_dirs = [
+            base / "cspTrustedSites",
+            base / "CSPTrustedSites",
+            base / "csptrustedsites",
+        ]
         permissionsets_dir = base / "permissionsets"
         profiles_dir = base / "profiles"
         reports_dir = base / "reports"
@@ -340,6 +356,14 @@ def main():
                 sorted([p.name for p in aura_dir.iterdir() if p.is_dir() and bundle_has_files(p)])
             )
 
+        for csp_dir in csp_dirs:
+            if not csp_dir.exists():
+                continue
+            csp_sites.extend(
+                strip_suffix(strip_suffix(path.name, ".xml"), ".cspTrustedSite-meta")
+                for path in csp_dir.glob("*.cspTrustedSite-meta.xml")
+            )
+
         if permissionsets_dir.exists():
             permission_sets.extend(
                 strip_suffix(strip_suffix(path.name, ".xml"), ".permissionset-meta")
@@ -351,6 +375,26 @@ def main():
                 strip_suffix(strip_suffix(path.name, ".xml"), ".profile-meta")
                 for path in profiles_dir.glob("*.profile-meta.xml")
             )
+
+        # Scan objects directory for CustomObject and CustomField
+        objects_dir = base / "objects"
+        if objects_dir.exists():
+            for obj_path in sorted(objects_dir.iterdir()):
+                if not obj_path.is_dir():
+                    continue
+                obj_api_name = obj_path.name
+                # Check for object-meta.xml (custom objects only)
+                obj_meta = obj_path / f"{obj_api_name}.object-meta.xml"
+                if obj_meta.exists() and obj_api_name.endswith("__c"):
+                    custom_objects.append(obj_api_name)
+                # Scan fields
+                fields_dir = obj_path / "fields"
+                if fields_dir.exists():
+                    for field_path in sorted(fields_dir.glob("*.field-meta.xml")):
+                        field_name = strip_suffix(strip_suffix(field_path.name, ".xml"), ".field-meta")
+                        full_field = f"{obj_api_name}.{field_name}"
+                        custom_fields.append(full_field)
+                        fields_by_object.setdefault(obj_api_name, []).append(field_name)
 
         if reports_dir.exists():
             for path in reports_dir.glob(f"*/*{REPORT_SUFFIX}"):
@@ -405,8 +449,13 @@ def main():
     apex_test_suites = sorted(set([name for name in apex_test_suites if name]))
     lwc_bundles = sorted(set([name for name in lwc_bundles if name]))
     aura_bundles = sorted(set([name for name in aura_bundles if name]))
+    csp_sites = sorted(set([name for name in csp_sites if name]))
     permission_sets = sorted(set([name for name in permission_sets if name]))
     profiles = sorted(set([name for name in profiles if name]))
+    custom_objects = sorted(set(custom_objects))
+    custom_fields = sorted(set(custom_fields))
+    for obj in fields_by_object:
+        fields_by_object[obj] = sorted(set(fields_by_object[obj]))
     report_folder_meta = sorted(report_folder_meta)
     dashboard_folder_meta = sorted(dashboard_folder_meta)
 
@@ -454,6 +503,34 @@ def main():
 
     manifest_dir.mkdir(parents=True, exist_ok=True)
 
+    # Objects slice (all custom objects and all custom fields)
+    objects_members = {"CustomObject": custom_objects, "CustomField": custom_fields}
+    add_slice(
+        "objects",
+        "objects",
+        str((manifest_dir_rel / "slice-objects.xml").as_posix()),
+        objects_members,
+    )
+
+    # Objects-comms slice (Comms_Message__c + Comms_Preference__c)
+    comms_objects = sorted([o for o in custom_objects if o.startswith("Comms_")])
+    comms_fields = sorted([f for f in custom_fields if f.startswith("Comms_")])
+    add_slice(
+        "objects-comms",
+        "objects",
+        str((manifest_dir_rel / "slice-objects-comms.xml").as_posix()),
+        {"CustomObject": comms_objects, "CustomField": comms_fields},
+    )
+
+    # Objects-case slice (Case custom fields only, no CustomObject for standard objects)
+    case_fields = sorted([f for f in custom_fields if f.startswith("Case.")])
+    add_slice(
+        "objects-case",
+        "objects",
+        str((manifest_dir_rel / "slice-objects-case.xml").as_posix()),
+        {"CustomField": case_fields},
+    )
+
     # Flows slice
     flow_members = {"Flow": flows}
     add_slice(
@@ -474,6 +551,26 @@ def main():
         "apex",
         str((manifest_dir_rel / "slice-apex.xml").as_posix()),
         apex_members,
+    )
+
+    # Apex-comms-core slice (Comms classes + DIG_TA_* + DigCaseAction_* + trigger + trigger test for coverage)
+    excluded_classes = {"DigCommsTests", "DigSlaScheduler"}
+    comms_core_classes = sorted([
+        c for c in apex_classes
+        if (
+            c.startswith("Comms")
+            or c.startswith("DIG_TA_")
+            or c.startswith("DigCaseAction_")
+            or c == "DigCaseTriggerTests"
+        )
+        and c not in excluded_classes
+    ])
+    comms_core_triggers = sorted([t for t in apex_triggers if t == "DigCaseTrigger"])
+    add_slice(
+        "apex-comms-core",
+        "apex",
+        str((manifest_dir_rel / "slice-apex-comms-core.xml").as_posix()),
+        {"ApexClass": comms_core_classes, "ApexTrigger": comms_core_triggers},
     )
 
     # Apex classes slice
@@ -506,6 +603,14 @@ def main():
         "aura",
         str((manifest_dir_rel / "slice-aura.xml").as_posix()),
         {"AuraDefinitionBundle": aura_bundles},
+    )
+
+    # CSP Trusted Sites slice
+    add_slice(
+        "csp",
+        "csp",
+        str((manifest_dir_rel / "slice-csp.xml").as_posix()),
+        {"CSPTrustedSite": csp_sites},
     )
 
     # Permission sets slice
@@ -622,34 +727,46 @@ def main():
             notes=notes or None,
         )
 
-    # Deterministic ordering: globals then per-folder
+    # Deterministic ordering: objects first, then globals, then per-folder
     def slice_sort_key(item):
         name = item[0]
-        if name == "flows":
+        if name == "objects":
             return (0, name)
-        if name == "apex":
+        if name == "objects-comms":
             return (1, name)
-        if name == "apex-classes":
+        if name == "objects-case":
             return (2, name)
-        if name == "apex-triggers":
+        if name.startswith("objects-"):
             return (3, name)
-        if name == "lwc":
+        if name == "flows":
             return (4, name)
-        if name == "aura":
+        if name == "apex":
             return (5, name)
-        if name == "permissionsets":
+        if name == "apex-comms-core":
             return (6, name)
-        if name == "profiles":
+        if name == "apex-classes":
             return (7, name)
-        if name == "reports":
+        if name == "apex-triggers":
             return (8, name)
-        if name == "dashboards":
+        if name == "lwc":
             return (9, name)
-        if name.startswith("reports-"):
+        if name == "aura":
             return (10, name)
-        if name.startswith("dashboards-"):
+        if name == "csp":
             return (11, name)
-        return (12, name)
+        if name == "permissionsets":
+            return (12, name)
+        if name == "profiles":
+            return (13, name)
+        if name == "reports":
+            return (14, name)
+        if name == "dashboards":
+            return (15, name)
+        if name.startswith("reports-"):
+            return (16, name)
+        if name.startswith("dashboards-"):
+            return (17, name)
+        return (18, name)
 
     slices.sort(key=slice_sort_key)
 
@@ -692,12 +809,15 @@ def main():
         md_lines.append(f"  manifest: {entry['manifest']}")
         counts = entry["counts"]
         counts_line = [
+            f"customObjects={counts.get('customObjects', 0)}",
+            f"customFields={counts.get('customFields', 0)}",
             f"flows={counts.get('flows', 0)}",
             f"apexClasses={counts.get('apexClasses', 0)}",
             f"apexTriggers={counts.get('apexTriggers', 0)}",
             f"apexTestSuites={counts.get('apexTestSuites', 0)}",
             f"lwc={counts.get('lwc', 0)}",
             f"aura={counts.get('aura', 0)}",
+            f"csp={counts.get('csp', 0)}",
             f"permissionSets={counts.get('permissionSets', 0)}",
             f"profiles={counts.get('profiles', 0)}",
             f"reports={counts.get('reports', 0)}",
@@ -716,12 +836,15 @@ def main():
     ensure_alias_file(root / "geary" / "slices.yml", slice_names)
 
     summary = {
+        "customObjects": len(custom_objects),
+        "customFields": len(custom_fields),
         "flows": len(flows),
         "apexClasses": len(apex_classes),
         "apexTriggers": len(apex_triggers),
         "apexTestSuites": len(apex_test_suites),
         "lwc": len(lwc_bundles),
         "aura": len(aura_bundles),
+        "csp": len(csp_sites),
         "permissionSets": len(permission_sets),
         "profiles": len(profiles),
         "reports": len(reports),

@@ -170,6 +170,61 @@ def scan_permsets(root: Path):
     return permsets
 
 
+def manifest_members(path: Path):
+    members_by_type = {}
+    root_xml = parse_xml(path)
+    if root_xml is None:
+        return members_by_type
+    for types in root_xml.findall(".//{*}types"):
+        name_elem = types.find("{*}name")
+        if name_elem is None or not name_elem.text:
+            continue
+        type_name = name_elem.text.strip()
+        members = []
+        for member in types.findall("{*}members"):
+            if member.text:
+                members.append(member.text.strip())
+        if members:
+            members_by_type[type_name] = members
+    return members_by_type
+
+
+def local_file_exists(package_dirs, rel_path: str):
+    for base in package_dirs:
+        candidate = base / "main" / "default" / rel_path
+        if candidate.exists():
+            return True
+    return False
+
+
+def validate_manifest_apex_members(root: Path, manifest_path: Path):
+    package_dirs = resolve_package_dirs(root)
+    members = manifest_members(manifest_path)
+    missing = []
+    for name in members.get("ApexClass", []):
+        cls_path = f"classes/{name}.cls"
+        meta_path = f"classes/{name}.cls-meta.xml"
+        if not local_file_exists(package_dirs, cls_path) or not local_file_exists(package_dirs, meta_path):
+            missing.append(("ApexClass", name))
+    for name in members.get("ApexTrigger", []):
+        trg_path = f"triggers/{name}.trigger"
+        meta_path = f"triggers/{name}.trigger-meta.xml"
+        if not local_file_exists(package_dirs, trg_path) or not local_file_exists(package_dirs, meta_path):
+            missing.append(("ApexTrigger", name))
+    if missing:
+        for kind, name in missing:
+            if kind == "ApexTrigger":
+                location = "dig-src/main/default/triggers/"
+            else:
+                location = "dig-src/main/default/classes/"
+            print(
+                f"Missing {kind} in local project: {name}. This class is referenced in {manifest_path} "
+                f"but is not present under {location}. Deploy would fail with "
+                "'named in package.xml but not found'."
+            )
+        sys.exit(1)
+
+
 def extract_permset_refs(path: Path):
     root_xml = parse_xml(path)
     classes = set()
@@ -601,6 +656,27 @@ def run_doctor(root: Path):
     if lwc_present and not csp_present:
         notes.append("LWC present: if components call external endpoints, add CSPTrustedSite metadata and deploy `csp` slice.")
 
+    manifest_dir = root / "manifest"
+    if manifest_dir.exists():
+        for manifest_path in sorted(manifest_dir.glob("slice-*.xml")):
+            members = manifest_members(manifest_path)
+            missing = []
+            package_dirs = resolve_package_dirs(root)
+            for name in members.get("ApexClass", []):
+                cls_path = f"classes/{name}.cls"
+                meta_path = f"classes/{name}.cls-meta.xml"
+                if not local_file_exists(package_dirs, cls_path) or not local_file_exists(package_dirs, meta_path):
+                    missing.append(f"ApexClass:{name}")
+            for name in members.get("ApexTrigger", []):
+                trg_path = f"triggers/{name}.trigger"
+                meta_path = f"triggers/{name}.trigger-meta.xml"
+                if not local_file_exists(package_dirs, trg_path) or not local_file_exists(package_dirs, meta_path):
+                    missing.append(f"ApexTrigger:{name}")
+            if missing:
+                warnings.append(
+                    f"manifest {manifest_path} references missing Apex members: {', '.join(missing)}"
+                )
+
     if errors:
         print("ERRORS:")
         for item in errors:
@@ -622,6 +698,7 @@ def run_install(root: Path, args):
     registry, slices = load_registry(root)
     aliases = parse_aliases(root / "geary" / "slices.yml")
     dep_map = {name: entry.get("dependsOn", []) for name, entry in slices.items()}
+    warned_coverage = False
 
     if args.tests and args.test_level != "RunSpecifiedTests":
         raise ValueError("--tests requires --test-level RunSpecifiedTests")
@@ -670,6 +747,7 @@ def run_install(root: Path, args):
         return [name for name in order if name not in perms] + perms
 
     def deploy_order(order, effective_level, effective_tests):
+        nonlocal warned_coverage
         for name in order:
             entry = slices.get(name)
             if not entry:
@@ -678,6 +756,8 @@ def run_install(root: Path, args):
             if sum(counts.values()) == 0 and not args.allow_empty:
                 raise ValueError(f"Refusing to install empty slice {name}. Use --allow-empty to override.")
             manifest_path = (root / entry["manifest"]).resolve()
+            if counts.get("apexClasses") or counts.get("apexTriggers"):
+                validate_manifest_apex_members(root, manifest_path)
             cmd = [
                 "sf",
                 "project",
@@ -700,6 +780,15 @@ def run_install(root: Path, args):
                 cmd.extend(["--test-level", use_test_level])
             if use_tests:
                 cmd.extend(["--tests", use_tests])
+            if use_test_level == "RunLocalTests" and not warned_coverage:
+                print("WARNING: Salesforce requires org-wide coverage >= 75% when tests run. "
+                      "If you see 'Average test coverage ... 74%' then you must add tests or "
+                      "raise coverage before deploy will succeed.")
+                print(
+                    f"Suggested: sf apex test run --target-org {args.target_org} "
+                    "--test-level RunLocalTests --code-coverage --result-format human --wait 60"
+                )
+                warned_coverage = True
             print("Running: " + " ".join(cmd))
             try:
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)

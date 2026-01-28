@@ -1,0 +1,359 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+POLICY_FILE="$ROOT/geary/config/policy.json"
+LOG_DIR="$ROOT/logs"
+LOG_FILE="$LOG_DIR/geary-audit.ndjson"
+
+CURRENT_CMD=""
+CURRENT_MANIFEST=""
+COMMAND_START_MS=""
+LOGGED=0
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  geary auth
+  geary governance:validate
+  geary governance:deploy [--confirm]
+  geary validate --manifest <path>
+  geary deploy --manifest <path> [--confirm]
+USAGE
+}
+
+now_ms() {
+  python3 - <<'PY'
+import time
+print(int(time.time()*1000))
+PY
+}
+
+log_event() {
+  local status="$1"
+  local duration_ms="$2"
+  local ts
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  mkdir -p "$LOG_DIR"
+  python3 - <<'PY'
+import json, os
+payload = {
+  "ts": os.environ.get("GEARY_LOG_TS"),
+  "cmd": os.environ.get("GEARY_LOG_CMD"),
+  "manifest": os.environ.get("GEARY_LOG_MANIFEST"),
+  "org": os.environ.get("GEARY_LOG_ORG"),
+  "status": os.environ.get("GEARY_LOG_STATUS"),
+  "durationMs": int(os.environ.get("GEARY_LOG_DURATION", "0"))
+}
+print(json.dumps(payload))
+PY
+  LOGGED=1
+}
+
+fail() {
+  local msg="$1"
+  if [[ -n "$CURRENT_CMD" && "$LOGGED" -eq 0 ]]; then
+    local end_ms
+    end_ms="$(now_ms)"
+    local duration_ms=$((end_ms - COMMAND_START_MS))
+    GEARY_LOG_TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    GEARY_LOG_CMD="$CURRENT_CMD" \
+    GEARY_LOG_MANIFEST="$CURRENT_MANIFEST" \
+    GEARY_LOG_ORG="${GEARY_ORG_ALIAS:-}" \
+    GEARY_LOG_STATUS="error" \
+    GEARY_LOG_DURATION="$duration_ms" \
+    log_event "error" "$duration_ms" >> "$LOG_FILE"
+  fi
+  echo "Error: $msg" >&2
+  exit 1
+}
+
+load_policy() {
+  [[ -f "$POLICY_FILE" ]] || fail "Missing policy file at $POLICY_FILE"
+  mapfile -t POLICY_ALLOWED_GLOBS < <(python3 - "$POLICY_FILE" <<'PY'
+import json
+import sys
+with open(sys.argv[1]) as f:
+  data = json.load(f)
+for glob in data.get("allowedManifestGlobs", []):
+  print(glob)
+PY
+)
+  REQUIRE_CONFIRM=$(python3 - "$POLICY_FILE" <<'PY'
+import json
+import sys
+with open(sys.argv[1]) as f:
+  data = json.load(f)
+print("true" if data.get("requireConfirmForDeploy", False) else "false")
+PY
+)
+}
+
+resolve_manifest() {
+  local input_path="$1"
+  [[ -n "$input_path" ]] || fail "Missing manifest path"
+  local abs_path
+  abs_path="$(python3 - <<'PY'
+import os, sys
+print(os.path.realpath(sys.argv[1]))
+PY
+"$input_path")"
+  [[ -f "$abs_path" ]] || fail "Manifest not found: $input_path"
+  local rel_path
+  rel_path="$(python3 - <<'PY'
+import os, sys
+print(os.path.relpath(sys.argv[1], sys.argv[2]))
+PY
+"$abs_path" "$ROOT")"
+  echo "$rel_path"
+}
+
+manifest_allowed() {
+  local rel_path="$1"
+  local allowed=0
+  for pattern in "${POLICY_ALLOWED_GLOBS[@]}"; do
+    case "$rel_path" in
+      $pattern) allowed=1 ;;
+    esac
+  done
+  [[ "$allowed" -eq 1 ]]
+}
+
+base64_decode() {
+  if base64 --help 2>&1 | grep -q -- "--decode"; then
+    base64 --decode
+  else
+    base64 -D
+  fi
+}
+
+require_env() {
+  local missing=()
+  for var in "$@"; do
+    if [[ -z "${!var:-}" ]]; then
+      missing+=("$var")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    fail "Missing required env vars: ${missing[*]}"
+  fi
+}
+
+require_auth_env() {
+  GEARY_SF_INSTANCE_URL="${GEARY_SF_INSTANCE_URL:-https://login.salesforce.com}"
+  GEARY_ORG_ALIAS="${GEARY_ORG_ALIAS:-deafingov}"
+  require_env GEARY_SF_CLIENT_ID GEARY_SF_USERNAME GEARY_SF_INSTANCE_URL GEARY_ORG_ALIAS
+  if [[ -z "${GEARY_SF_JWT_KEY_PATH:-}" && -z "${GEARY_SF_JWT_KEY_B64:-}" ]]; then
+    fail "Missing required env vars: GEARY_SF_JWT_KEY_PATH or GEARY_SF_JWT_KEY_B64"
+  fi
+}
+
+run_and_log() {
+  local cmd_name="$1"
+  local manifest="$2"
+  shift 2
+  CURRENT_CMD="$cmd_name"
+  CURRENT_MANIFEST="$manifest"
+  COMMAND_START_MS="$(now_ms)"
+  LOGGED=0
+  if "$@"; then
+    local end_ms
+    end_ms="$(now_ms)"
+    local duration_ms=$((end_ms - COMMAND_START_MS))
+    GEARY_LOG_TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    GEARY_LOG_CMD="$CURRENT_CMD" \
+    GEARY_LOG_MANIFEST="$CURRENT_MANIFEST" \
+    GEARY_LOG_ORG="${GEARY_ORG_ALIAS:-}" \
+    GEARY_LOG_STATUS="ok" \
+    GEARY_LOG_DURATION="$duration_ms" \
+    log_event "ok" "$duration_ms" >> "$LOG_FILE"
+  else
+    local end_ms
+    end_ms="$(now_ms)"
+    local duration_ms=$((end_ms - COMMAND_START_MS))
+    GEARY_LOG_TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    GEARY_LOG_CMD="$CURRENT_CMD" \
+    GEARY_LOG_MANIFEST="$CURRENT_MANIFEST" \
+    GEARY_LOG_ORG="${GEARY_ORG_ALIAS:-}" \
+    GEARY_LOG_STATUS="error" \
+    GEARY_LOG_DURATION="$duration_ms" \
+    log_event "error" "$duration_ms" >> "$LOG_FILE"
+    exit 1
+  fi
+}
+
+geary_auth() {
+  CURRENT_CMD="auth"
+  COMMAND_START_MS="$(now_ms)"
+  LOGGED=0
+
+  require_auth_env
+
+  local keyfile=""
+  local temp_key=""
+  if [[ -n "${GEARY_SF_JWT_KEY_PATH:-}" ]]; then
+    keyfile="$GEARY_SF_JWT_KEY_PATH"
+  elif [[ -n "${GEARY_SF_JWT_KEY_B64:-}" ]]; then
+    temp_key="$(mktemp)"
+    echo "$GEARY_SF_JWT_KEY_B64" | base64_decode > "$temp_key"
+    keyfile="$temp_key"
+  else
+    fail "Missing required env vars: GEARY_SF_JWT_KEY_PATH or GEARY_SF_JWT_KEY_B64"
+  fi
+
+  cleanup() {
+    if [[ -n "$temp_key" && -f "$temp_key" ]]; then
+      rm -f "$temp_key"
+    fi
+  }
+  trap cleanup EXIT
+
+  run_and_log "auth" "" \
+    sf org login jwt \
+      --client-id "$GEARY_SF_CLIENT_ID" \
+      --jwt-key-file "$keyfile" \
+      --username "$GEARY_SF_USERNAME" \
+      --instance-url "$GEARY_SF_INSTANCE_URL" \
+      --set-default \
+      --alias "$GEARY_ORG_ALIAS"
+}
+
+select_governance_manifest() {
+  local primary="$ROOT/manifest/governance-engine.xml"
+  local fallback="$ROOT/manifest/governance-mvp-package.xml"
+  if [[ -f "$primary" ]]; then
+    echo "$primary"
+  elif [[ -f "$fallback" ]]; then
+    echo "$fallback"
+  else
+    fail "No governance manifest found. Looked for manifest/governance-engine.xml and manifest/governance-mvp-package.xml"
+  fi
+}
+
+ensure_manifest_allowed() {
+  local rel_path="$1"
+  if ! manifest_allowed "$rel_path"; then
+    fail "Manifest not allowed by policy: $rel_path"
+  fi
+}
+
+ensure_confirm() {
+  local confirm="$1"
+  if [[ "$REQUIRE_CONFIRM" == "true" && "$confirm" != "--confirm" ]]; then
+    fail "Deploy requires explicit confirmation. Re-run with --confirm"
+  fi
+}
+
+geary_validate() {
+  local manifest_input="$1"
+  CURRENT_CMD="validate"
+  COMMAND_START_MS="$(now_ms)"
+  LOGGED=0
+  require_auth_env
+  load_policy
+  local rel_path
+  rel_path="$(resolve_manifest "$manifest_input")"
+  ensure_manifest_allowed "$rel_path"
+  run_and_log "validate" "$rel_path" \
+    sf project deploy validate \
+      --manifest "$rel_path" \
+      --target-org "$GEARY_ORG_ALIAS"
+}
+
+geary_deploy() {
+  local manifest_input="$1"
+  local confirm_flag="$2"
+  CURRENT_CMD="deploy"
+  COMMAND_START_MS="$(now_ms)"
+  LOGGED=0
+  require_auth_env
+  load_policy
+  local rel_path
+  rel_path="$(resolve_manifest "$manifest_input")"
+  ensure_manifest_allowed "$rel_path"
+  ensure_confirm "$confirm_flag"
+  run_and_log "deploy" "$rel_path" \
+    sf project deploy start \
+      --manifest "$rel_path" \
+      --target-org "$GEARY_ORG_ALIAS"
+}
+
+geary_governance_validate() {
+  CURRENT_CMD="governance:validate"
+  COMMAND_START_MS="$(now_ms)"
+  LOGGED=0
+  require_auth_env
+  load_policy
+  local manifest_path
+  manifest_path="$(select_governance_manifest)"
+  local rel_path
+  rel_path="$(resolve_manifest "$manifest_path")"
+  ensure_manifest_allowed "$rel_path"
+  run_and_log "governance:validate" "$rel_path" \
+    sf project deploy validate \
+      --manifest "$rel_path" \
+      --target-org "$GEARY_ORG_ALIAS"
+}
+
+geary_governance_deploy() {
+  local confirm_flag="$1"
+  CURRENT_CMD="governance:deploy"
+  COMMAND_START_MS="$(now_ms)"
+  LOGGED=0
+  require_auth_env
+  load_policy
+  local manifest_path
+  manifest_path="$(select_governance_manifest)"
+  local rel_path
+  rel_path="$(resolve_manifest "$manifest_path")"
+  ensure_manifest_allowed "$rel_path"
+  ensure_confirm "$confirm_flag"
+  run_and_log "governance:deploy" "$rel_path" \
+    sf project deploy start \
+      --manifest "$rel_path" \
+      --target-org "$GEARY_ORG_ALIAS"
+}
+
+main() {
+  if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+  fi
+
+  local cmd="$1"
+  shift || true
+
+  case "$cmd" in
+    -h|--help)
+      usage
+      ;;
+    auth)
+      geary_auth
+      ;;
+    governance:validate)
+      geary_governance_validate
+      ;;
+    governance:deploy)
+      geary_governance_deploy "${1:-}"
+      ;;
+    validate)
+      if [[ "${1:-}" != "--manifest" || -z "${2:-}" ]]; then
+        fail "validate requires --manifest <path>"
+      fi
+      geary_validate "$2"
+      ;;
+    deploy)
+      if [[ "${1:-}" != "--manifest" || -z "${2:-}" ]]; then
+        fail "deploy requires --manifest <path>"
+      fi
+      geary_deploy "$2" "${3:-}"
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
