@@ -1,0 +1,46 @@
+version: 1
+aliases:
+  all-flows:
+    includes: [flows]
+  all-analytics:
+    includes: [dashboards]
+    withDeps: true
+  all-reports:
+    includes: [reports]
+  summit-analytics:
+    includes: [dashboards-summit__SummitEventsDashboards]
+    withDeps: true
+  summit-reports:
+    includes: [reports-summit__SummitEventsReports]
+  summit-sample:
+    includes: [flows]
+    withDeps: true
+  dig-membership-onboarding:
+    includes: [flows]
+    withDeps: true
+  all-apex:
+    includes: [apex]
+  all-apex-classes:
+    includes: [apex-classes]
+  all-apex-triggers:
+    includes: [apex-triggers]
+  all-lwc:
+    includes: [lwc]
+  all-permissionsets:
+    includes: [permissionsets]
+  lwc-web:
+    includes: [lwc, csp]
+  comms-schema:
+    includes: [objects-comms, objects-case]
+  comms-perms:
+    includes: [permissionsets]
+  apex-comms-core:
+    includes: [apex-comms-core]
+  comms-apex:
+    includes: [apex-comms-core]
+  comms-web:
+    includes: [lwc, csp]
+  comms-web-full:
+    includes: [lwc, csp]
+  comms-all:
+    includes: [objects-comms, objects-case, permissionsets, apex-comms-core, lwc, csp]
