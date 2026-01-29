@@ -828,6 +828,9 @@ def run_install(root: Path, args):
         effective_tests = override_tests
         deploy_order(order, effective_level, effective_tests)
 
+    # Special-case deterministic installer:
+    # `comms-web` enforces a safe deploy sequence with schema/permset linting and prod test-level policy.
+    # `comms-web-full` is a normal alias expansion (no special behavior).
     if args.name in {"comms-web", "comms-web-full"}:
         schema_scan = schema_lint_or_exit()
         steps = [
