@@ -19,3 +19,5 @@ tools/geary/__pycache__/
 # Misc
 .DS_Store
 *.log
+.env
+.env.local
