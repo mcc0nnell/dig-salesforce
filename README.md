@@ -142,6 +142,10 @@ See `sf-geary-plugin/README.md` for install and usage details.
 
 ## Mermaid Intake — owned + bounded slice
 - [Mermaid Intake — owned + bounded slice](docs/geary/mermaid-intake.md)
+- Complete implementation including Apex classes, LWC component, and supporting files for Mermaid diagram intake functionality
+- Cloudflare Mermaid Runner integration for diagram rendering
+- Permission sets and CSP configurations for secure access
+- Documentation and runbooks for deployment and usage
 
 ---
 
