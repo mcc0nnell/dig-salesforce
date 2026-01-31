@@ -126,6 +126,25 @@ See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
 
 ---
 
+## Geary CLI plugin (sf-geary)
+This repo includes a TypeScript sf CLI plugin that wraps the Python Geary CLI.
+
+Quickstart:
+```bash
+cd sf-geary-plugin
+npm i
+npm run build
+node bin/run.js geary update --root ..
+node bin/run.js geary doctor --root ..
+```
+
+See `sf-geary-plugin/README.md` for install and usage details.
+
+## Mermaid Intake — owned + bounded slice
+- [Mermaid Intake — owned + bounded slice](docs/geary/mermaid-intake.md)
+
+---
+
 ## Runbooks
 - Comms schema + perms + apex + LWC deployment runbook (production-safe). See `docs/runbooks/comms-stack-deploy.md`.
 - Geary comms-web deterministic install change log. See `docs/notes/geary-comms-web-change-log.md`.

@@ -137,6 +137,7 @@ python tools/geary/geary.py update --root .
 ## Recipes (v1)
 Recipes live in `recipes/` as Markdown with YAML frontmatter and exactly one Mermaid `flowchart TD` block. They compile into deterministic Flow metadata under `dig-src/main/default/flows/` and maintain a lockfile at `geary/out/recipes.lock.json`.
 Generated Flow XML is deterministically pretty-printed for human review.
+Mermaid intake (AST cache only): `docs/geary/mermaid-intake.md`.
 
 Commands:
 ```bash
