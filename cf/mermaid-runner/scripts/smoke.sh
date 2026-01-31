@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-load_env_file() {
-  local env_file="$1"
-  if [[ -f "$env_file" ]]; then
-    set -a
-    # shellcheck source=/dev/null
-    source "$env_file"
-    set +a
-  fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUNNER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-load_env_file ".env.local"
-load_env_file ".env"
+pushd "$RUNNER_ROOT" >/dev/null
+source scripts/load-env.sh
+popd >/dev/null
 
 WORKER_URL="${WORKER_URL:-https://geary-mermaid-runner-v1.stokoe.workers.dev}"
-KEY="${GEARY_KEY:-}"
+
+echo "Smoke tests: hitting ${WORKER_URL}/render with GEARY_KEY length=${#GEARY_KEY}"
 
 fail_count=0
 
@@ -46,16 +41,11 @@ status=$(curl -s -o /dev/null -w "%{http_code}" \
   -d '{"mermaid":"flowchart TD\nA-->B"}')
 check_status "missing auth" 401 "$status"
 
-if [[ -z "$KEY" ]]; then
-  echo "GEARY_KEY is not set. Export it or run scripts/gen_geary_key.sh and then: set -a; source .env.local; set +a" >&2
-  exit 2
-fi
-
-# Test 2: Valid auth => 200 and ok:true
+## Test 2: Valid auth => 200 and ok:true
 body=$(curl -s -w "\n%{http_code}" \
   -X POST "${WORKER_URL}/render" \
   -H 'Content-Type: application/json' \
-  -H "X-Geary-Key: ${KEY}" \
+  -H "X-Geary-Key: ${GEARY_KEY}" \
   -d '{"mermaid":"flowchart TD\nA-->B"}')
 status=$(echo "$body" | tail -n1)
 resp=$(echo "$body" | sed '$d')
@@ -64,6 +54,31 @@ if echo "$resp" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true'; then
   log_pass "response ok:true"
 else
   log_fail "response missing ok:true"
+fi
+
+# Test 2b: SVG render via runner
+svg_body=$(curl -s -w "\n%{http_code}" \
+  -X POST "${WORKER_URL}/render" \
+  -H 'Content-Type: application/json' \
+  -H "X-Geary-Key: ${GEARY_KEY}" \
+-d '{"mermaid":"graph TD\nA-->B","format":"svg"}')
+svg_status=$(echo "$svg_body" | tail -n1)
+svg_resp=$(echo "$svg_body" | sed '$d')
+check_status "svg render" 200 "$svg_status"
+if echo "$svg_resp" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true'; then
+  log_pass "svg response ok:true"
+else
+  log_fail "svg response missing ok:true"
+fi
+if echo "$svg_resp" | grep -Eq '"svg"[[:space:]]*:'; then
+  log_pass "svg response contains svg field"
+else
+  log_fail "svg response missing svg field"
+fi
+if echo "$svg_resp" | grep -Eq '<svg'; then
+  log_pass "svg payload contains <svg"
+else
+  log_fail "svg payload missing <svg"
 fi
 
 # Test 3: Oversized payload => 413
@@ -76,7 +91,7 @@ PY
 status=$(curl -s -o /dev/null -w "%{http_code}" \
   -X POST "${WORKER_URL}/render" \
   -H 'Content-Type: application/json' \
-  -H "X-Geary-Key: ${KEY}" \
+  -H "X-Geary-Key: ${GEARY_KEY}" \
   --data "$payload")
 check_status "oversized payload" 413 "$status"
 

@@ -38,7 +38,7 @@ JSON body:
 }
 ```
 
-#### SVG (placeholder)
+#### SVG (real rendering)
 
 ```
 {
@@ -54,6 +54,7 @@ JSON body:
 - 401 `unauthorized` (missing/invalid key)
 - 400 `missing_mermaid` or `invalid_json`
 - 413 `payload_too_large` (over 200KB)
+- 422 `render_failed` (Mermaid failed to render or generated unsafe SVG)
 - 500 `unexpected_error`
 
 ### CORS
@@ -87,7 +88,7 @@ curl -s -X POST https://geary-mermaid-runner-v1.stokoe.workers.dev/render \
 From `cf/mermaid-runner`:
 
 ```
-npx wrangler deploy
+npx wrangler deploy --env production
 ```
 
 ## Local key setup
@@ -101,13 +102,13 @@ bash scripts/gen_geary_key.sh
 Load it into your shell:
 
 ```
-set -a; source .env.local; set +a
+source scripts/load-env.sh
 ```
 
 Set the Worker secret from your env:
 
 ```
-npx wrangler secret put GEARY_KEY
+printf '%s' "${GEARY_KEY}" | npx wrangler secret put GEARY_KEY --env production
 ```
 
 ## TODO (real rendering)

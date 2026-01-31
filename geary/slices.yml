@@ -44,3 +44,5 @@ aliases:
     includes: [objects-case, objects-comms, apex-comms-core, permissionsets, lwc, csp]
   comms-all:
     includes: [objects-comms, objects-case, permissionsets, apex-comms-core, lwc, csp]
+  mermaid-intake:
+    includes: [slice-apex-mermaid-intake, slice-lwc-mermaid-intake, slice-permissionsets-mermaid-intake, slice-csp-mermaid-intake]

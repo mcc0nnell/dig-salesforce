@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
+import hashlib
+import importlib.util
 import json
+import os
 import subprocess
 import sys
-from pathlib import Path
-import importlib.util
+import tempfile
+import urllib.error
+import urllib.request
 import xml.etree.ElementTree as ET
+from pathlib import Path
+
+
+DEFAULT_WORKER_URL = "https://geary-mermaid-runner-v1.stokoe.workers.dev"
+MAX_MERMAID_BYTES = 200 * 1024
 
 
 def parse_args():
@@ -48,6 +58,22 @@ def parse_args():
     recipe_install.add_argument("--root", default=".", help="Repo root")
     recipe_install.add_argument("--target-org", help="Salesforce target org alias")
     recipe_install.add_argument("--with-deps", action="store_true", help="Install dependencies")
+
+    mermaid = subparsers.add_parser("mermaid", help="Render Mermaid via the worker")
+    mermaid.add_argument("--root", default=".", help="Repo root")
+    mermaid.add_argument("--in", dest="input_path", help="Mermaid source file")
+    mermaid.add_argument("--format", choices=["json", "svg"], default="json", help="Worker output format")
+    mermaid.add_argument("--out", help="Write output to PATH instead of stdout")
+    mermaid.add_argument("--id", help="Optional request id")
+    mermaid.add_argument(
+        "--worker-url",
+        default=os.environ.get("WORKER_URL", DEFAULT_WORKER_URL),
+        help="Mermaid worker render URL",
+    )
+    mermaid.add_argument("--key", help="Mermaid runner auth key")
+    mermaid.add_argument("--env-file", help="Path to dotenv file (default: .env.local if present)")
+    mermaid.add_argument("--timeout", type=int, default=20, help="Request timeout in seconds")
+    mermaid.add_argument("--quiet", action="store_true", help="Suppress informational output")
 
     return parser.parse_args()
 
@@ -530,6 +556,192 @@ def run_recipe_install(root: Path, args):
     run_install(root, install_args)
 
 
+def normalize_mermaid_text(value: str) -> str:
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.rstrip(" \t") for line in normalized.split("\n")]
+    cleaned = "\n".join(lines).rstrip()
+    if cleaned.startswith("\ufeff"):
+        cleaned = cleaned[1:]
+    return cleaned
+
+
+def load_dotenv_file(path: Path):
+    if not path.is_file():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        value = value.strip()
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            value = value[1:-1]
+        if key not in os.environ:
+            os.environ[key] = value
+
+
+def load_env_files(root: Path, args):
+    paths = []
+    if args.env_file:
+        path = Path(args.env_file)
+        if not path.is_absolute():
+            path = root / path
+        paths.append(path)
+    else:
+        local = root / ".env.local"
+        default = root / ".env"
+        if local.exists():
+            paths.append(local)
+        if default.exists():
+            paths.append(default)
+    for path in paths:
+        load_dotenv_file(path)
+
+
+def read_mermaid_input(root: Path, args) -> str:
+    if args.input_path:
+        source = Path(args.input_path)
+        if not source.is_absolute():
+            source = root / source
+        if not source.exists():
+            print(f"Mermaid input file not found: {source}", file=sys.stderr)
+            raise SystemExit(2)
+        return source.read_text(encoding="utf-8")
+    if sys.stdin.isatty():
+        print("Provide Mermaid source via --in <file> or pipe data to stdin.", file=sys.stderr)
+        raise SystemExit(2)
+    return sys.stdin.read()
+
+
+def build_render_url(base_url: str) -> str:
+    if base_url.endswith("/render"):
+        return base_url
+    return base_url.rstrip("/") + "/render"
+
+
+def call_mermaid_worker(
+    mermaid_text: str,
+    fmt: str,
+    worker_url: str,
+    key: str,
+    request_id: str | None,
+    timeout: int,
+) -> dict:
+    url = build_render_url(worker_url)
+    payload = {"mermaid": mermaid_text, "format": fmt}
+    if request_id:
+        payload["id"] = request_id
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-Geary-Key": key,
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            status = response.status
+            body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as err:
+        status = err.code
+        body = err.read().decode("utf-8") if err.fp else ""
+    except urllib.error.URLError as err:
+        raise RuntimeError(f"request_failed: {err.reason}") from err
+
+    if status != 200:
+        detail = body.strip().replace("\n", " ")
+        if detail:
+            try:
+                parsed = json.loads(body)
+                if isinstance(parsed, dict):
+                    detail = parsed.get("error") or parsed.get("detail") or detail
+            except json.JSONDecodeError:
+                pass
+        else:
+            detail = "no response body"
+        if status == 401:
+            raise RuntimeError("unauthorized: check GEARY_KEY")
+        if status == 413:
+            raise RuntimeError("payload_too_large: <=200KB")
+        raise RuntimeError(f"worker_error: {status} {detail}")
+
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as err:
+        raise RuntimeError("invalid_json_response") from err
+
+    if not payload.get("ok"):
+        error_msg = payload.get("error", "missing ok:true")
+        raise RuntimeError(f"worker_error: {error_msg}")
+
+    if fmt == "svg":
+        svg = payload.get("svg", "")
+        if "<svg" not in svg:
+            raise RuntimeError("missing svg payload")
+
+    return payload
+
+
+def write_mermaid_output(root: Path, args, payload: dict):
+    output_format = args.format
+    if args.out:
+        target = Path(args.out)
+        if not target.is_absolute():
+            target = root / target
+        target.parent.mkdir(parents=True, exist_ok=True)
+        content = payload.get("svg") if output_format == "svg" else json.dumps(payload, indent=2, ensure_ascii=False)
+        target.write_text(content, encoding="utf-8")
+        if not args.quiet:
+            print(f"Wrote {target}")
+    else:
+        if output_format == "svg":
+            print(payload.get("svg", ""), end="" if payload.get("svg", "").endswith("\n") else "\n")
+        else:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
+def run_mermaid(root: Path, args):
+    load_env_files(root, args)
+    key = args.key or os.environ.get("GEARY_KEY")
+    if not key:
+        print("Missing GEARY_KEY (set env or --key).", file=sys.stderr)
+        raise SystemExit(2)
+
+    raw = read_mermaid_input(root, args)
+    if not raw.strip():
+        print("Mermaid input is empty.", file=sys.stderr)
+        raise SystemExit(2)
+    normalized = normalize_mermaid_text(raw)
+    if not normalized:
+        print("Mermaid input is empty after normalization.", file=sys.stderr)
+        raise SystemExit(2)
+    size = len(normalized.encode("utf-8"))
+    if size > MAX_MERMAID_BYTES:
+        print(f"Mermaid source too large ({size} bytes > {MAX_MERMAID_BYTES}).", file=sys.stderr)
+        raise SystemExit(2)
+
+    try:
+        response = call_mermaid_worker(
+            normalized,
+            args.format,
+            args.worker_url,
+            key,
+            args.id,
+            args.timeout,
+        )
+    except RuntimeError as err:
+        print(f"Mermaid render failed: {err}", file=sys.stderr)
+        raise SystemExit(1)
+
+    write_mermaid_output(root, args, response)
+
+
 def run_list(root: Path):
     registry, slices = load_registry(root)
     aliases = parse_aliases(root / "geary" / "slices.yml")
@@ -893,6 +1105,9 @@ def main():
         return 0
     if args.command == "install":
         run_install(root, args)
+        return 0
+    if args.command == "mermaid":
+        run_mermaid(root, args)
         return 0
     if args.command == "recipe":
         if args.recipe_command == "compile":
