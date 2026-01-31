@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>MermaidAstBlueprint</members>
+        <members>MermaidHttpClient</members>
+        <members>MermaidRenderService</members>
+        <members>MermaidSecrets</members>
+        <members>MermaidRenderService_Test</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>mermaidIntake</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>Mermaid_Intake_Perms</members>
+        <name>PermissionSet</name>
+    </types>
+    <types>
+        <members>Geary_Mermaid_Worker</members>
+        <name>CspTrustedSite</name>
+    </types>
+    <version>57.0</version>
+</Package>

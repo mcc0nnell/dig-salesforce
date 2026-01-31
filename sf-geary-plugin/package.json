@@ -1,0 +1,39 @@
+{
+  "name": "sf-geary",
+  "version": "0.1.0",
+  "description": "Salesforce CLI plugin wrapper for Geary",
+  "license": "MIT",
+  "private": true,
+  "main": "dist/index.js",
+  "bin": {
+    "sf-geary": "bin/run.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "jest",
+    "prepack": "npm run build",
+    "postpack": "oclif manifest"
+  },
+  "dependencies": {
+    "@oclif/core": "^4.0.0",
+    "@salesforce/sf-plugins-core": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.30",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.5"
+  },
+  "oclif": {
+    "bin": "sf-geary",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "plugins": []
+  }
+}

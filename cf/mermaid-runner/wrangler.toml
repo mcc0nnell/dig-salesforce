@@ -1,0 +1,10 @@
+name = "geary-mermaid-runner-v1"
+main = "src/index.ts"
+compatibility_date = "2026-01-29"
+compatibility_flags = ["nodejs_compat"]
+browser = { binding = "MYBROWSER" }
+
+[env.production]
+name = "geary-mermaid-runner-v1"
+compatibility_flags = ["nodejs_compat"]
+browser = { binding = "MYBROWSER" }

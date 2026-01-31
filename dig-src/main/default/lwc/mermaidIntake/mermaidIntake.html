@@ -1,0 +1,89 @@
+<!--
+  Mermaid Intake LWC
+  - Textarea for Mermaid input
+  - Buttons: Render SVG, Parse JSON, Both
+  - Panels: SVG Preview, JSON AST, Blueprint JSON
+  - Spinner, error toasts, request id
+-->
+<template>
+  <lightning-card title="Mermaid Intake">
+    <div class="slds-p-around_medium slds-grid slds-wrap slds-gutters">
+      <!-- Input -->
+      <div class="slds-col slds-size_1-of-1">
+        <lightning-textarea
+          name="mermaid"
+          label="Mermaid Text"
+          value={mermaid}
+          onchange={handleMermaidChange}
+          placeholder="Paste Mermaid diagram text here..."
+          class="mermaid-input"
+        ></lightning-textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+        <lightning-button-group>
+          <lightning-button
+            label="Render SVG"
+            onclick={handleRenderSvg}
+            variant="brand"
+            disabled={isBusy || isEmpty}
+          ></lightning-button>
+          <lightning-button
+            label="Parse JSON"
+            onclick={handleParseJson}
+            variant="brand-outline"
+            disabled={isBusy || isEmpty}
+          ></lightning-button>
+          <lightning-button
+            label="Both"
+            onclick={handleBoth}
+            variant="neutral"
+            disabled={isBusy || isEmpty}
+          ></lightning-button>
+        </lightning-button-group>
+        <template if:true={requestId}>
+          <span class="slds-text-body_small slds-m-left_small">Request Id: {requestId}</span>
+        </template>
+      </div>
+
+      <!-- Status -->
+      <template if:true={isBusy}>
+        <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+          <lightning-spinner size="small" alternative-text="Processing..."></lightning-spinner>
+        </div>
+      </template>
+
+      <!-- Output Panels -->
+      <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top_medium">
+        <section class="slds-card slds-p-around_small">
+          <header class="slds-text-title_bold slds-m-bottom_x-small">SVG Preview</header>
+          <div class="svg-container" lwc:dom="manual"></div>
+          <template if:true={svgMissing}>
+            <div class="slds-text-color_weak slds-m-top_small">No SVG yet.</div>
+          </template>
+        </section>
+      </div>
+
+      <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top_medium">
+        <section class="slds-card slds-p-around_small">
+          <header class="slds-text-title_bold slds-m-bottom_x-small">Parsed AST (JSON)</header>
+          <pre class="code-block">{astPretty}</pre>
+          <template if:true={astMissing}>
+            <div class="slds-text-color_weak slds-m-top_small">No AST yet.</div>
+          </template>
+        </section>
+      </div>
+
+      <div class="slds-col slds-size_1-of-1 slds-m-top_medium">
+        <section class="slds-card slds-p-around_small">
+          <header class="slds-text-title_bold slds-m-bottom_x-small">App Blueprint (JSON)</header>
+          <pre class="code-block">{blueprintPretty}</pre>
+          <template if:true={blueprintMissing}>
+            <div class="slds-text-color_weak slds-m-top_small">No blueprint yet.</div>
+          </template>
+        </section>
+      </div>
+    </div>
+  </lightning-card>
+</template>

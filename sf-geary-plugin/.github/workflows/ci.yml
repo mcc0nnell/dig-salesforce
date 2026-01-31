@@ -1,0 +1,12 @@
+name: ci
+
+on:
+  workflow_dispatch:
+
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cloudflare Containers pipeline
+        run: |
+          echo "CI/deploy handled via Cloudflare Containers; GitHub Actions is intentionally minimal."
