@@ -1,58 +1,26 @@
-#!/usr/bin/env bash
-set -euo pipefail
+name: Catalog Lint
 
-# DIG Ops Catalog Lint Gate
-# - Runs the catalog compiler (which performs schema + hygiene checks)
-# - Prints a clear PASS/FAIL line
-# - Exits nonzero on failure
-#
-# Assumptions:
-# - scripts/catalog_compile.py exists
-# - It exits 0 on success, nonzero on lint failure
-# - It writes outputs into build/ (e.g., build/catalog.yml, build/catalog_report.md)
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+permissions:
+  contents: read
 
-PY="${PYTHON:-}"
+jobs:
+  catalog-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-# Prefer python3 (ubuntu-latest), fall back to python
-if [[ -z "$PY" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
-    PY="python3"
-  elif command -v python >/dev/null 2>&1; then
-    PY="python"
-  else
-    echo "CATALOG LINT: FAIL"
-    echo "Reason: python/python3 not found on PATH"
-    exit 127
-  fi
-fi
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-if [[ ! -f "scripts/catalog_compile.py" ]]; then
-  echo "CATALOG LINT: FAIL"
-  echo "Reason: scripts/catalog_compile.py not found"
-  exit 127
-fi
-
-mkdir -p build
-
-# Run compiler (it should perform all checks and exit nonzero on lint failure)
-set +e
-"$PY" scripts/catalog_compile.py "$@"
-RC=$?
-set -e
-
-if [[ $RC -eq 0 ]]; then
-  echo "CATALOG LINT: PASS"
-  exit 0
-fi
-
-echo "CATALOG LINT: FAIL"
-
-# Provide quick pointers without dumping secrets
-if [[ -f "build/catalog_report.md" ]]; then
-  echo "See: build/catalog_report.md"
-fi
-
-exit "$RC"
+      - name: Run catalog lint
+        run: |
+          bash scripts/catalog_lint.sh
