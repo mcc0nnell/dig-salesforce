@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CspTrustedSite xmlns="http://soap.sforce.com/2006/04/metadata">
-    <domain>geary-mermaid-runner-v1.stokoe.workers.dev</domain>
-    <isActive>true</isActive>
-    <isRelaxedSecurity>false</isRelaxedSecurity>
-    <label>Geary Mermaid Worker</label>
-</CspTrustedSite>

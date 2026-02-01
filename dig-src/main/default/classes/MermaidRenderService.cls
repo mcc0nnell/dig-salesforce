@@ -10,6 +10,7 @@ public with sharing class MermaidRenderService {
         @AuraEnabled public String astJson;       // Raw AST JSON string (pretty as returned)
         @AuraEnabled public String blueprintJson; // Generated minimal App Blueprint JSON
         @AuraEnabled public String requestId;
+        @AuraEnabled public String svg;
     }
 
     @AuraEnabled(cacheable=false)
@@ -48,6 +49,7 @@ public with sharing class MermaidRenderService {
     }
 
     // MVP blueprint generator: map nodes to objects/screens and edges to actions/flows
+    @TestVisible
     private static String generateBlueprintFromAst(String astJson) {
         // Default minimal structure
         Map<String, Object> blueprint = new Map<String, Object>{
@@ -140,12 +142,13 @@ public with sharing class MermaidRenderService {
             for (String key : m.keySet()) {
                 Object val = m.get(key);
                 if (val == null) continue;
-                if (nodeKeys.containsIgnoreCase(key) && val instanceof List<Object>) {
+                String keyLower = key == null ? null : key.toLowerCase();
+                if (keyLower != null && nodeKeys.contains(keyLower) && val instanceof List<Object>) {
                     for (Object o : (List<Object>) val) {
                         if (o instanceof Map<String, Object>) nodes.add((Map<String, Object>) o);
                     }
                 }
-                if (edgeKeys.containsIgnoreCase(key) && val instanceof List<Object>) {
+                if (keyLower != null && edgeKeys.contains(keyLower) && val instanceof List<Object>) {
                     for (Object o : (List<Object>) val) {
                         if (o instanceof Map<String, Object>) edges.add((Map<String, Object>) o);
                     }
@@ -160,9 +163,11 @@ public with sharing class MermaidRenderService {
     }
 
     // Helpers
+    @TestVisible
     private static String coerceString(Object o) {
         return o == null ? null : String.valueOf(o);
     }
+    @TestVisible
     private static String sanitizeApiName(String s) {
         if (String.isBlank(s)) return null;
         String out = s.replaceAll('[^A-Za-z0-9_]', '_');

@@ -103,6 +103,66 @@ public class MermaidRenderService_Test {
         String result4 = MermaidRenderService.sanitizeApiName('123Invalid');
         System.assertEquals('A_123Invalid', result4);
     }
+
+    @isTest
+    static void testMermaidAstBlueprintGenerate() {
+        String mockAstJson = '{"nodes":[{"id":"A","label":"Node A"}],"edges":[{"from":"A","to":"B"}]}';
+        String result = MermaidAstBlueprint.generateBlueprintFromAst(mockAstJson);
+        System.assertNotEquals(null, result);
+        System.assert(result.contains('objects'), 'Blueprint should include objects');
+    }
+
+    @isTest
+    static void testMermaidHttpClientCallWorkerSvg() {
+        Test.setMock(HttpCalloutMock.class, new MermaidTestCalloutMock());
+        String mockMermaid = 'graph TD\n    A-->B';
+        MermaidHttpClient.Result res = MermaidHttpClient.callWorker(mockMermaid, 'svg', 'test-id-123');
+        System.assertEquals(true, res.ok);
+        System.assertNotEquals(null, res.svg);
+        System.assertEquals('test-id-123', res.requestId);
+    }
+
+    @isTest
+    static void testMermaidHttpClientCallWorkerJson() {
+        Test.setMock(HttpCalloutMock.class, new MermaidTestCalloutMock());
+        String mockMermaid = 'graph TD\n    A-->B';
+        MermaidHttpClient.Result res = MermaidHttpClient.callWorker(mockMermaid, 'json', 'test-id-123');
+        System.assertEquals(true, res.ok);
+        System.assertNotEquals(null, res.astJson);
+        System.assertEquals('test-id-123', res.requestId);
+    }
+
+    @isTest
+    static void testMermaidHttpClientMissingSvg() {
+        Test.setMock(HttpCalloutMock.class, new MermaidOkNoSvgMock());
+        String mockMermaid = 'graph TD\n    A-->B';
+        MermaidHttpClient.Result res = MermaidHttpClient.callWorker(mockMermaid, 'svg', 'test-id-123');
+        System.assertEquals(false, res.ok);
+        System.assertNotEquals(null, res.errorMessage);
+    }
+
+    @isTest
+    static void testMermaidHttpClientMissingAst() {
+        Test.setMock(HttpCalloutMock.class, new MermaidOkNoSvgMock());
+        String mockMermaid = 'graph TD\n    A-->B';
+        MermaidHttpClient.Result res = MermaidHttpClient.callWorker(mockMermaid, 'json', 'test-id-123');
+        System.assertEquals(false, res.ok);
+        System.assertNotEquals(null, res.errorMessage);
+    }
+
+    @isTest
+    static void testMermaidHttpClientOkFalse() {
+        Test.setMock(HttpCalloutMock.class, new MermaidOkFalseMock());
+        String mockMermaid = 'graph TD\n    A-->B';
+        MermaidHttpClient.Result res = MermaidHttpClient.callWorker(mockMermaid, 'svg', 'test-id-123');
+        System.assertEquals(false, res.ok);
+        System.assertNotEquals(null, res.errorMessage);
+    }
+
+    @isTest
+    static void testMermaidSecretsGetKey() {
+        System.assertEquals(null, MermaidSecrets.getKey());
+    }
     
     // Mock callout class for successful responses
     private class MermaidTestCalloutMock implements HttpCalloutMock {
@@ -122,6 +182,26 @@ public class MermaidRenderService_Test {
             response.setStatusCode(500);
             response.setHeader('Content-Type', 'application/json');
             response.setBody('{"ok":false,"error":"Internal Server Error"}');
+            return response;
+        }
+    }
+
+    private class MermaidOkNoSvgMock implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest request) {
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(200);
+            response.setHeader('Content-Type', 'application/json');
+            response.setBody('{"ok":true}');
+            return response;
+        }
+    }
+
+    private class MermaidOkFalseMock implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest request) {
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(200);
+            response.setHeader('Content-Type', 'application/json');
+            response.setBody('{"ok":false,"error":"Bad request"}');
             return response;
         }
     }
