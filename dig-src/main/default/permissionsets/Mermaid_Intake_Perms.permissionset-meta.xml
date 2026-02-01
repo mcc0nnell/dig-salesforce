@@ -6,24 +6,6 @@
     <label>Mermaid Intake Perms</label>
     <license>Salesforce</license>
     
-    <!-- Allow access to the LWC component -->
-    <applications>
-        <application>DIG_Salesforce</application>
-        <enabled>true</enabled>
-    </applications>
-    
-    <!-- Allow callouts to Named Credential -->
-    <externalDataSourceAccess>
-        <enabled>true</enabled>
-        <externalDataSource>Geary_Mermaid_Worker</externalDataSource>
-    </externalDataSourceAccess>
-    
-    <!-- Allow access to the Mermaid Intake LWC component -->
-    <lwcComponentAccesses>
-        <lwcComponent>mermaidIntake</lwcComponent>
-        <enabled>true</enabled>
-    </lwcComponentAccesses>
-    
     <!-- Allow access to the Apex classes -->
     <classAccesses>
         <apexClass>MermaidRenderService</apexClass>
@@ -34,19 +16,8 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>MermaidAstBlueprint</apexClass>
+        <apexClass>MermaidSecrets</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     
-    <!-- Allow Named Credential access -->
-    <namedCredentialAccesses>
-        <enabled>true</enabled>
-        <namedCredential>Geary_Mermaid_Worker</namedCredential>
-    </namedCredentialAccesses>
-    
-    <!-- Allow custom metadata access (for key storage) -->
-    <customMetadataTypeAccesses>
-        <customMetadataType>Geary_Key__mdt</customMetadataType>
-        <enabled>true</enabled>
-    </customMetadataTypeAccesses>
 </PermissionSet>

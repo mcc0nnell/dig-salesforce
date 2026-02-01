@@ -22,7 +22,7 @@ If you already generated the key elsewhere (password manager, secret store, etc.
 The repo ships `cf/mermaid-runner/.env.example` with the fields you can override:
 
 ```ini
-GEARY_KEY=your-generated-strong-key
+GEARY_KEY=REDACTED
 WORKER_URL=https://geary-mermaid-runner-v1.stokoe.workers.dev
 ```
 

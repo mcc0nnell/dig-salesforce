@@ -81,10 +81,10 @@ Not as a slogan — as a constraint:
 > Your exact folders may vary depending on how you’ve staged DIG Ops vs Governance vs Summit,
 but the intent is consistent.
 
-- `force-app/` — source-tracked Salesforce metadata (Apex, objects, fields, etc.)
+- `dig-src/` — primary source for DIG-owned metadata (Apex, flows, permission sets, objects)
 - `manifest/` — deployment packages for targeted deploys (Ops, Governance, Summit)
 - `docs/` — human-readable runbooks and “why we did it” notes
-- `dig-src/` (if present) — additional metadata slices (older or staged work)
+- `force-app/` — legacy/noisy metadata; avoid unless explicitly requested
 
 ---
 
@@ -96,17 +96,22 @@ but the intent is consistent.
 
 ### Validate (dry run)
 ```bash
-sf project deploy validate -o deafingov -p force-app
+make dig-validate
 ```
 
 ### Deploy
 ```bash
-sf project deploy start -o deafingov -p force-app
+sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml
 ```
 
 ### Deploy a specific slice (example)
 ```bash
-sf project deploy start -o deafingov --manifest manifest/governance-mvp-package.xml
+sf project deploy start --target-org deafingov --manifest manifest/governance-mvp-package.xml
+```
+
+### Retrieve a minimal slice (example)
+```bash
+make dig-retrieve
 ```
 
 ---
@@ -116,6 +121,7 @@ Geary Muni is the repo’s slice builder + deploy wrapper. It scans package dire
 
 Quick summary:
 - Build slices/registry: `python tools/geary/geary.py update --root .`
+- Compile recipes (if `recipes/` changed): `python tools/geary/geary.py recipe compile --root .`
 - List slices/aliases: `python tools/geary/geary.py list`
 - Health checks: `python tools/geary/geary.py doctor --root .`
 - Install a slice: `python tools/geary/geary.py install flows --target-org deafingov`
@@ -123,6 +129,7 @@ Quick summary:
 - Recipes support LWC screen components via `type: lwc` (see `geary.md`).
 
 See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
+Catalog compiler + lint gate: see `docs/geary/catalog.md`.
 
 ---
 

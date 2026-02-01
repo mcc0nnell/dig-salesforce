@@ -9,11 +9,7 @@ public with sharing class MermaidSecrets {
      * @return The API key string or null if not found
      */
     public static String getKey() {
-        // Query the protected custom metadata record
-        List<Geary_Key__mdt> keys = [SELECT Id, Key__c FROM Geary_Key__mdt WHERE DeveloperName = 'Mermaid_API_Key' LIMIT 1];
-        if (keys.isEmpty()) {
-            return null;
-        }
-        return keys[0].Key__c;
+        // Named Credential should inject the header; keep this as a safe null fallback.
+        return null;
     }
 }

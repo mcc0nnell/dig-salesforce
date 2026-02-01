@@ -106,12 +106,13 @@ public with sharing class MermaidAstBlueprint {
             for (String key : m.keySet()) {
                 Object val = m.get(key);
                 if (val == null) continue;
-                if (nodeKeys.containsIgnoreCase(key) && val instanceof List<Object>) {
+                String keyLower = key == null ? null : key.toLowerCase();
+                if (keyLower != null && nodeKeys.contains(keyLower) && val instanceof List<Object>) {
                     for (Object o : (List<Object>) val) {
                         if (o instanceof Map<String, Object>) nodes.add((Map<String, Object>) o);
                     }
                 }
-                if (edgeKeys.containsIgnoreCase(key) && val instanceof List<Object>) {
+                if (keyLower != null && edgeKeys.contains(keyLower) && val instanceof List<Object>) {
                     for (Object o : (List<Object>) val) {
                         if (o instanceof Map<String, Object>) edges.add((Map<String, Object>) o);
                     }

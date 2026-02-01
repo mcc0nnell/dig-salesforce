@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CspTrustedSite xmlns="http://soap.sforce.com/2006/04/metadata">
+    <isActive>true</isActive>
+    <context>All</context>
+    <endpointUrl>https://geary-mermaid-runner-v1.stokoe.workers.dev</endpointUrl>
+    <description>Geary Mermaid Worker endpoint</description>
+</CspTrustedSite>

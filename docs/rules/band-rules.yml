@@ -1,0 +1,36 @@
+version: 1
+
+bands:
+  boot:
+    range: [0, 9]
+    priority: 10
+  evidence:
+    range: [10, 29]
+    priority: 20
+  services:
+    range: [30, 39]
+    priority: 30
+  ui:
+    range: [40, 49]
+    priority: 40
+  domain:
+    range: [50, 79]
+    priority: 50
+  wrapper:
+    range: [80, 89]
+    priority: 60
+  comms+integrations:
+    range: [90, 98]
+    priority: 70
+  exec:
+    range: [99, 99]
+    priority: 80
+
+dependency_law:
+  default:
+    allow_depends_on_same_or_lower_priority: true
+  exceptions:
+    - band: wrapper
+      may_depend_on_bands: [boot, evidence, services, ui, domain, wrapper, comms+integrations]
+    - band: exec
+      may_depend_on_bands: [boot, evidence, services, ui, domain, wrapper, comms+integrations, exec]
