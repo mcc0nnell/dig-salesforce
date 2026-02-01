@@ -18,11 +18,11 @@ This document summarizes the full integration of contents from `digops_catalog_v
    - JSON schema for slice definitions
    - Preserves exact relative path from zip
 
-4. **Added**: `rules/band-rules.yml`
+4. **Added**: `catalog/rules/band-rules.yml`
    - Rules configuration for band management
    - Preserves exact relative path from zip
 
-5. **Added**: `rules/geary-lint-slices.md`
+5. **Added**: `catalog/rules/geary-lint-slices.md`
    - Documentation for slice linting rules
    - Preserves exact relative path from zip
 
@@ -49,8 +49,8 @@ All required Mermaid Intake components were already present in the repository:
 examples/slice-digops-41-mermaid-intake.yml   |   15 +++++++++++++++
 examples/slice-digops-44-ui-hud-embed.yml     |   15 +++++++++++++++
 schema/slice.schema.json                      |   35 +++++++++++++++++++++++++++++++
-rules/band-rules.yml                          |    8 ++++++++
-rules/geary-lint-slices.md                    |   20 ++++++++++++++++++++
+catalog/rules/band-rules.yml                          |    8 ++++++++
+catalog/rules/geary-lint-slices.md                    |   20 ++++++++++++++++++++
 docs/ui/hud-embed.md                          |   30 ++++++++++++++++++++++++++++++
 docs/ui/mermaid-intake.md                     |   30 ++++++++++++++++++++++++++++++
 ```
@@ -81,8 +81,8 @@ This PR integrates the FULL contents of `digops_catalog_v1_3.zip` into the Geary
    - `examples/slice-digops-41-mermaid-intake.yml`
    - `examples/slice-digops-44-ui-hud-embed.yml`
    - `schema/slice.schema.json`
-   - `rules/band-rules.yml`
-   - `rules/geary-lint-slices.md`
+   - `catalog/rules/band-rules.yml`
+   - `catalog/rules/geary-lint-slices.md`
 
 2. **Added documentation files** in the correct location:
    - `docs/ui/hud-embed.md`

@@ -18,6 +18,16 @@ provides:
   - MermaidSecrets
   lwc:
   - mermaidIntake
+deploy:
+  manifests:
+  - manifest/slice-apex-mermaid-intake.xml
+  - manifest/slice-lwc-mermaid-intake.xml
+  - manifest/slice-permissionsets-mermaid-intake.xml
+  - manifest/slice-csp-mermaid-intake.xml
+  packages:
+  - manifest/mermaid-intake-package.xml
+  notes:
+  - "Validate with RunSpecifiedTests MermaidRenderService_Test (if needed)."
 spine: null
 policy:
   deployment:

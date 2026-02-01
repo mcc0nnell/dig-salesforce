@@ -132,11 +132,13 @@ See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
 Catalog compiler + lint gate: `bash scripts/catalog_lint.sh` (details in `docs/geary/catalog.md`). Example YAML should reference tracked manifests (avoid gitignored `manifest/slice-*.xml` files).
 
 ## Catalog
-Short, human-curated index of slices + dependencies. See `docs/geary/catalog.md`.
+Short, human-curated index of slices + dependencies.
+- Slice Index: `docs/catalog/index.md`
+- How the catalog works + how to add slices: `docs/geary/catalog.md`
 
 ### Adding a new slice (quick)
-- Add a new entry under `docs/examples/` with a unique `slice.id` + `slice.number`, and reference a tracked manifest.
-- Run `bash scripts/catalog_lint.sh` to generate `build/catalog.yml` + `build/catalog_report.md`.
+- Add a new entry under `catalog/examples/` with a unique `slice.id` + `slice.number`, and reference a tracked manifest.
+- Run `bash scripts/catalog_lint.sh` to generate `catalog/build/catalog.yml` + `catalog/build/catalog_report.md` and refresh `docs/catalog/index.md`.
 - If it’s a real slice, refresh the registry: `python tools/geary/geary.py update --root .`.
 
 Solaris-structured slices:

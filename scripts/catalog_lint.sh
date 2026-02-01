@@ -20,7 +20,7 @@ if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
   exit 127
 fi
 
-mkdir -p build
+mkdir -p catalog/build
 
 set +e
 "$PYTHON_BIN" scripts/catalog_compile.py
@@ -28,12 +28,23 @@ RC=$?
 set -e
 
 if [[ $RC -eq 0 ]]; then
+  if [[ -f "scripts/catalog_index.py" ]]; then
+    "$PYTHON_BIN" scripts/catalog_index.py
+    RC=$?
+  else
+    echo "CATALOG LINT: FAIL"
+    echo "Reason: scripts/catalog_index.py not found"
+    exit 127
+  fi
+fi
+
+if [[ $RC -eq 0 ]]; then
   echo "CATALOG LINT: PASS"
   exit 0
 fi
 
 echo "CATALOG LINT: FAIL"
-if [[ -f build/catalog_report.md ]]; then
-  echo "See: build/catalog_report.md"
+if [[ -f catalog/build/catalog_report.md ]]; then
+  echo "See: catalog/build/catalog_report.md"
 fi
 exit "$RC"

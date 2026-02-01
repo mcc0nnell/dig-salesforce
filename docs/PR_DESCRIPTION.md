@@ -8,8 +8,8 @@ This PR integrates the FULL contents of `digops_catalog_v1_3.zip` into the Geary
   - `examples/slice-digops-41-mermaid-intake.yml` - Mermaid Intake slice definition
   - `examples/slice-digops-44-ui-hud-embed.yml` - HUD Embed slice definition  
   - `schema/slice.schema.json` - JSON schema for slice definitions
-  - `rules/band-rules.yml` - Rules configuration for band management
-  - `rules/geary-lint-slices.md` - Documentation for slice linting rules
+  - `catalog/rules/band-rules.yml` - Rules configuration for band management
+  - `catalog/rules/geary-lint-slices.md` - Documentation for slice linting rules
 
 - **Documentation Files**: 
   - `docs/ui/hud-embed.md` - HUD Embed documentation

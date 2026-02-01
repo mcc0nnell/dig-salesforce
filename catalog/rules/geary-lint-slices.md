@@ -3,7 +3,7 @@
 This document describes the validation gates that enforce the "DIG Ops OS" slice architecture.
 
 ## Gate A — Band law
-- `slice.number` must be within the declared band's allowed range (see `rules/band-rules.yml`).
+- `slice.number` must be within the declared band's allowed range (see `catalog/rules/band-rules.yml`).
 - A slice may depend only on same-or-lower band priority, except:
   - `wrapper` may depend on `domain` and `ui`
   - `exec` may depend on all

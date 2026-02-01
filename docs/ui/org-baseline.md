@@ -21,5 +21,5 @@ python tools/geary/geary.py update --root .
 
 ## Failure modes + troubleshooting
 - **Catalog lint fails**: confirm the docs path in the slice YAML matches this file.
-- **Slice missing from catalog**: rerun the lint/compile and check `build/catalog.yml` ordering.
+- **Slice missing from catalog**: rerun the lint/compile and check `catalog/build/catalog.yml` ordering.
 - **Baseline expectations drift**: update this doc first, then re-run lint so the catalog reflects it.

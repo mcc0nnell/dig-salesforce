@@ -11,10 +11,10 @@ from typing import Any, Dict, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.dont_write_bytecode = True
-SCHEMA_PATH = REPO_ROOT / "docs" / "schema" / "slice.schema.json"
-EXAMPLES_GLOB = "docs/examples/slice-digops-*.yml"
-CATALOG_PATH = REPO_ROOT / "build" / "catalog.yml"
-REPORT_PATH = REPO_ROOT / "build" / "catalog_report.md"
+SCHEMA_PATH = REPO_ROOT / "catalog" / "schema" / "slice.schema.json"
+EXAMPLES_GLOB = "catalog/examples/slice-digops-*.yml"
+CATALOG_PATH = REPO_ROOT / "catalog" / "build" / "catalog.yml"
+REPORT_PATH = REPO_ROOT / "catalog" / "build" / "catalog_report.md"
 SLICES_PATH = REPO_ROOT / "geary" / "slices.yml"
 
 X_GEARY_KEY_ALLOWLIST = {
@@ -398,6 +398,70 @@ def normalize_path_value(key: str, value: Any) -> Any:
     return cleaned
 
 
+def normalize_deploy(deploy: Any) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    errors: List[str] = []
+    missing: List[str] = []
+    if not isinstance(deploy, dict):
+        return {}, ["deploy: expected object"], []
+
+    normalized: Dict[str, Any] = {}
+
+    def normalize_manifest_list(value: Any, label: str, present: bool) -> List[str]:
+        if not present:
+            return []
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            errors.append(f"deploy.{label}: expected array")
+            return []
+        items: List[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                errors.append(f"deploy.{label}: expected string entries")
+                continue
+            cleaned = item.replace("\\", "/").lstrip("./")
+            if not cleaned.startswith("manifest/"):
+                errors.append(f"deploy.{label}: {cleaned} must be under manifest/")
+            if not (REPO_ROOT / cleaned).exists():
+                missing.append(cleaned)
+                errors.append(f"deploy.{label}: missing {cleaned}")
+            items.append(cleaned)
+        return sorted(items)
+
+    def normalize_notes(value: Any, present: bool) -> List[str]:
+        if not present:
+            return []
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            errors.append("deploy.notes: expected array")
+            return []
+        notes: List[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                errors.append("deploy.notes: expected string entries")
+                continue
+            notes.append(item.strip())
+        return notes
+
+    has_manifests = "manifests" in deploy
+    has_packages = "packages" in deploy
+    has_notes = "notes" in deploy
+
+    manifests = normalize_manifest_list(deploy.get("manifests"), "manifests", has_manifests)
+    packages = normalize_manifest_list(deploy.get("packages"), "packages", has_packages)
+    notes = normalize_notes(deploy.get("notes"), has_notes)
+
+    if has_manifests:
+        normalized["manifests"] = manifests
+    if has_packages:
+        normalized["packages"] = packages
+    if has_notes:
+        normalized["notes"] = notes
+
+    return normalized, errors, missing
+
+
 def collect_file_refs(data: Any) -> List[Tuple[str, str]]:
     refs: List[Tuple[str, str]] = []
 
@@ -577,6 +641,48 @@ def generate_report(
         missing = ", ".join(result.missing_files) if result.missing_files else "-"
         lines.append(f"| {slice_id} | {slice_title} | {status} | {missing} |")
     lines.append("")
+    deploy_entries: List[Tuple[str, int, int, int, List[str]]] = []
+    total_manifests = 0
+    total_packages = 0
+    for result in results:
+        normalized = result.normalized if isinstance(result.normalized, dict) else {}
+        deploy = normalized.get("deploy", {}) if isinstance(normalized.get("deploy"), dict) else {}
+        if not deploy:
+            continue
+        manifests = deploy.get("manifests", []) if isinstance(deploy.get("manifests"), list) else []
+        packages = deploy.get("packages", []) if isinstance(deploy.get("packages"), list) else []
+        notes = deploy.get("notes", []) if isinstance(deploy.get("notes"), list) else []
+        total_manifests += len(manifests)
+        total_packages += len(packages)
+        slice_data = result.data.get("slice", {}) if isinstance(result.data, dict) else {}
+        slice_id = slice_data.get("id", "-")
+        deploy_errors = [err for err in result.validation_errors if err.startswith("deploy.")]
+        deploy_entries.append((slice_id, len(manifests), len(packages), len(notes), deploy_errors))
+
+    lines.append("## Deploy map")
+    lines.append("")
+    lines.append(f"Slices with deploy: {len(deploy_entries)}")
+    lines.append(f"Manifest refs: {total_manifests}")
+    lines.append(f"Package refs: {total_packages}")
+    lines.append("")
+    if deploy_entries:
+        lines.append("| id | manifests | packages | notes | status |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for slice_id, manifest_count, package_count, note_count, deploy_errors in deploy_entries:
+            status = "ok" if not deploy_errors else "fail"
+            lines.append(
+                f"| {slice_id} | {manifest_count} | {package_count} | {note_count} | {status} |"
+            )
+        lines.append("")
+        deploy_failures = [(sid, errs) for sid, _m, _p, _n, errs in deploy_entries if errs]
+        if deploy_failures:
+            lines.append("Deploy validation errors:")
+            lines.append("")
+            for slice_id, errs in deploy_failures:
+                lines.append(f"- {slice_id}")
+                for err in errs:
+                    lines.append(f"  - {err}")
+            lines.append("")
     lines.append("## Alias boundedness")
     lines.append("")
     lines.append(f"Result: {'PASS' if alias_check.ok else 'FAIL'}")
@@ -676,7 +782,16 @@ def format_scalar(value: Any) -> str:
 
 
 def ordered_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
-    top_order = ["version", "slice", "depends_on", "provides", "spine", "policy", "files_verified"]
+    top_order = [
+        "version",
+        "slice",
+        "depends_on",
+        "provides",
+        "deploy",
+        "spine",
+        "policy",
+        "files_verified",
+    ]
     slice_order = ["id", "number", "band", "title", "description", "owner"]
     provides_order = ["objects", "apex", "lwc", "reports"]
     def order_map(data: Dict[str, Any], order: List[str]) -> Dict[str, Any]:
@@ -744,6 +859,14 @@ def main() -> int:
         normalized_paths = normalize_paths(data)
         refs = collect_file_refs(normalized_paths)
         missing_files = check_files_exist(refs)
+        deploy_normalized: Dict[str, Any] | None = None
+        deploy_errors: List[str] = []
+        deploy_missing: List[str] = []
+        if "deploy" in data:
+            deploy_normalized, deploy_errors, deploy_missing = normalize_deploy(data.get("deploy"))
+            validation_errors.extend(deploy_errors)
+            if deploy_missing:
+                missing_files = sorted(set(missing_files + deploy_missing))
         warnings: List[str] = []
         slice_info = data.get("slice", {}) if isinstance(data.get("slice"), dict) else {}
         if "description" not in slice_info:
@@ -751,6 +874,8 @@ def main() -> int:
         if "owner" not in slice_info:
             warnings.append("slice.owner is missing")
         normalized = normalize_against_schema(normalized_paths, schema)
+        if deploy_normalized is not None:
+            normalized["deploy"] = deploy_normalized
         normalized["files_verified"] = len(missing_files) == 0
         results.append(
             EntryResult(

@@ -10,6 +10,7 @@ dist/
 tmp/
 .tmp/
 build/
+catalog/build/
 
 # Geary generated artifacts
 geary/out/

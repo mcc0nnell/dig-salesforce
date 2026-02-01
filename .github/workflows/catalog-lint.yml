@@ -40,8 +40,9 @@ jobs:
         with:
           name: catalog
           path: |
-            build/catalog.yml
-            build/catalog_report.md
+            catalog/build/catalog.yml
+            catalog/build/catalog_report.md
+            docs/catalog/index.md
           if-no-files-found: warn
 
       - name: Comment catalog report on PR
@@ -50,7 +51,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const reportPath = 'build/catalog_report.md';
+            const reportPath = 'catalog/build/catalog_report.md';
             if (!fs.existsSync(reportPath)) {
               core.warning(`Missing ${reportPath}; skipping PR comment.`);
               return;
