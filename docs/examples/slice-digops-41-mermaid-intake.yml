@@ -23,10 +23,7 @@ policy:
   deployment:
     sf_slice_alias: mermaid-intake
     sf_manifests:
-    - manifest/slice-apex-mermaid-intake.xml
-    - manifest/slice-lwc-mermaid-intake.xml
-    - manifest/slice-permissionsets-mermaid-intake.xml
-    - manifest/slice-csp-mermaid-intake.xml
+    - manifest/mermaid-intake-package.xml
     not_in_aliases:
     - comms-web
     - comms-web-full
