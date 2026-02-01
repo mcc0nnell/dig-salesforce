@@ -129,7 +129,28 @@ Quick summary:
 - Recipes support LWC screen components via `type: lwc` (see `geary.md`).
 
 See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
-Catalog compiler + lint gate: see `docs/geary/catalog.md`.
+Catalog compiler + lint gate: `bash scripts/catalog_lint.sh` (details in `docs/geary/catalog.md`). Example YAML should reference tracked manifests (avoid gitignored `manifest/slice-*.xml` files).
+
+## Catalog
+Short, human-curated index of slices + dependencies. See `docs/geary/catalog.md`.
+
+### Adding a new slice (quick)
+- Add a new entry under `docs/examples/` with a unique `slice.id` + `slice.number`, and reference a tracked manifest.
+- Run `bash scripts/catalog_lint.sh` to generate `build/catalog.yml` + `build/catalog_report.md`.
+- If it’s a real slice, refresh the registry: `python tools/geary/geary.py update --root .`.
+
+```yaml
+version: 1
+slice:
+  id: digops-05-example-slice
+  number: 5
+  band: services
+  title: Example Slice
+policy:
+  deployment:
+    sf_manifests:
+      - manifest/membership-mvp-package.xml
+```
 
 ---
 
