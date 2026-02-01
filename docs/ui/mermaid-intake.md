@@ -1,4 +1,3 @@
-# <!-- This file is deprecated. See docs/ui/mermaid-intake.md for the latest documentation -->
 # Mermaid Intake (DIG Ops Catalog)
 
 This slice documents the **Mermaid Intake** capability as an **owned + bounded** Salesforce slice (alias: `mermaid-intake`).
@@ -44,6 +43,11 @@ Run the test class directly:
 ```bash
 sf apex run test --tests MermaidRenderService_Test --target-org <ORG_ALIAS>
 ```
+
+## Prerequisites
+- Named Credential required: `Geary_Mermaid_Worker`
+- CSP Trusted Site required: `Geary_Mermaid_Worker` (CspTrustedSite)
+- Permission set does NOT enforce named credential access because org metadata schema may not support `namedCredentialAccess`.
 
 ## Troubleshooting
 - **Duplicate metadata errors**: confirm Mermaid assets exist only under `dig-src/` (remove any old copies under `force-app/`).

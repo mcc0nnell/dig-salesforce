@@ -1,0 +1,44 @@
+version: 1
+slice:
+  id: digops-41-mermaid-intake
+  number: 41
+  band: ui
+  title: Mermaid Intake
+  description: Bounded Salesforce UI + Apex render service to convert Mermaid diagrams
+    into app blueprints (decoupled from comms-web).
+  owner: DIG Ops / Geary
+depends_on:
+- digops-32-policy-enforcement
+- digops-30-core-services
+provides:
+  apex:
+  - MermaidRenderService
+  - MermaidHttpClient
+  - MermaidAstBlueprint
+  - MermaidSecrets
+  lwc:
+  - mermaidIntake
+spine: null
+policy:
+  deployment:
+    sf_slice_alias: mermaid-intake
+    sf_manifests:
+    - manifest/slice-apex-mermaid-intake.xml
+    - manifest/slice-lwc-mermaid-intake.xml
+    - manifest/slice-permissionsets-mermaid-intake.xml
+    - manifest/slice-csp-mermaid-intake.xml
+    not_in_aliases:
+    - comms-web
+    - comms-web-full
+    notes:
+    - Mermaid metadata lives under dig-src/ (not force-app/) to avoid duplicates.
+    - X-Geary-Key is server-side only; never logged; never exposed to LWC.
+  comms:
+    allow_cross_spine: false
+  security:
+    key_header_name: X-Geary-Key
+    key_usage_allowlist:
+    - dig-src/main/default/classes/MermaidHttpClient.cls
+    - dig-src/main/default/classes/MermaidSecrets.cls
+    - tools/geary/geary.py (mermaid subcommand only)
+    - tools/geary/mermaid_client.py

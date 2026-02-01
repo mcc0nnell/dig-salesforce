@@ -1,0 +1,19 @@
+version: 1
+slice:
+  id: digops-44-ui-hud-embed
+  number: 44
+  band: ui
+  title: HUD Embed Pattern
+  description: Standard embed + auth + meetingKey model for in-meeting HUD inside Google Sites
+depends_on:
+  - digops-12-portal-google-sites
+  - digops-21-dig-emissions-journal-runtime
+provides:
+  docs:
+    - docs/ui/hud-embed.md
+policy:
+  ui:
+    embed: iframe
+    allowed_hosts:
+      - ops.deafingov.org
+      - hud.deafingov.org
