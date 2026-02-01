@@ -5,6 +5,7 @@ slice:
   band: ui
   title: HUD Embed Pattern
   description: Standard embed + auth + meetingKey model for in-meeting HUD inside Google Sites
+  owner: DIG Ops / Web
 depends_on:
   - digops-12-portal-google-sites
   - digops-21-dig-emissions-journal-runtime
