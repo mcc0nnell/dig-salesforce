@@ -8,10 +8,9 @@ slice:
 depends_on:
   - digops-12-portal-google-sites
   - digops-21-dig-emissions-journal-runtime
-provides:
+policy:
   docs:
     - docs/ui/hud-embed.md
-policy:
   ui:
     embed: iframe
     allowed_hosts:

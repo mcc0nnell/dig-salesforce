@@ -129,6 +129,7 @@ Quick summary:
 - Recipes support LWC screen components via `type: lwc` (see `geary.md`).
 
 See `geary.md` for the full CLI reference, alias rules, and Recipes syntax.
+Catalog compiler + lint gate: see `docs/geary/catalog.md`.
 
 ---
 

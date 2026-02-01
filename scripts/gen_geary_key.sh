@@ -11,5 +11,5 @@ PY
 )
 fi
 
-printf 'GEARY_KEY=%s\n' "$key" > .env.local
-printf 'export GEARY_KEY="%s"\n' "$key"
+printf 'GEARY_KEY=REDACTED
+printf 'export GEARY_KEY=REDACTED
