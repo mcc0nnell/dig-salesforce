@@ -116,6 +116,7 @@ printf '%s' "${GEARY_KEY}" | npx wrangler secret put GEARY_KEY --env production
 - `geary doctor` (it will load `.env.local` / `.env` automatically when run from the repo root or you can pass `--env-file`) prints `worker host`, `key present`, `mode` (`LIVE` or `OFFLINE`), `http status`, `latency ms`, and a PASS/FAIL line with next-step guidance. In live mode it hits the worker; add `--no-network` to validate the offline invariants for receipts/emissions/run directory structure/hash verification.
 - `geary run --offline --stdin --format svg` normalizes the Mermaid input, emits `input.mmd`, a placeholder `output.svg` (or `output.json`), receipts, and emissions, and prints `run id: …` to stderr. Use `geary replay <run_id>` to recompute hashes and verify against the receipt.
 - `scripts/smoke_geary.sh` loads `.env.local`/`.env`, runs `geary doctor` plus a live run/replay, and if the live doctor fails it falls back to `geary doctor --no-network`, `geary run --offline`, and `geary replay` so the smoke suite passes even in restricted CI/agent environments.
+- GitHub enforces that OAuth clients without `workflow` scope cannot push commits that touch `.github/workflows/catalog-lint.yml`. When you see that rejection feel free to edit that workflow through the GitHub UI or use an OAuth token/Pat with `workflow` scope before pushing again; the note above is an invariant tied to this repo’s protections.
 
 ## TODO (real rendering)
 
