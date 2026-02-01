@@ -39,3 +39,4 @@ bash scripts/catalog_lint.sh
 ## CI
 
 The GitHub Action runs `scripts/catalog_lint.sh` on PRs and `main`. The job fails if any lint gate fails.
+
