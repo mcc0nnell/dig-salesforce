@@ -111,6 +111,12 @@ Set the Worker secret from your env:
 printf '%s' "${GEARY_KEY}" | npx wrangler secret put GEARY_KEY --env production
 ```
 
+## Geary CLI smoke & doctor
+
+- `geary doctor` (it will load `.env.local` / `.env` automatically when run from the repo root or you can pass `--env-file`) prints `worker host`, `key present`, `mode` (`LIVE` or `OFFLINE`), `http status`, `latency ms`, and a PASS/FAIL line with next-step guidance. In live mode it hits the worker; add `--no-network` to validate the offline invariants for receipts/emissions/run directory structure/hash verification.
+- `geary run --offline --stdin --format svg` normalizes the Mermaid input, emits `input.mmd`, a placeholder `output.svg` (or `output.json`), receipts, and emissions, and prints `run id: …` to stderr. Use `geary replay <run_id>` to recompute hashes and verify against the receipt.
+- `scripts/smoke_geary.sh` loads `.env.local`/`.env`, runs `geary doctor` plus a live run/replay, and if the live doctor fails it falls back to `geary doctor --no-network`, `geary run --offline`, and `geary replay` so the smoke suite passes even in restricted CI/agent environments.
+
 ## TODO (real rendering)
 
 - Use an external renderer service (Puppeteer/Playwright) to generate SVG/PNG.

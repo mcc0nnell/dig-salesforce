@@ -8,7 +8,9 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -31,8 +33,11 @@ def parse_args():
     graph = subparsers.add_parser("graph", help="Show dependency graph")
     graph.add_argument("--root", default=".", help="Repo root")
 
-    doctor = subparsers.add_parser("doctor", help="Check for issues")
+    doctor = subparsers.add_parser("doctor", help="Health check or repo checks")
     doctor.add_argument("--root", default=".", help="Repo root")
+    doctor.add_argument("--repo", action="store_true", help="Run repository slice checks")
+    doctor.add_argument("--no-network", action="store_true", help="Skip network round-trip")
+    doctor.add_argument("--env-file", help="Load env vars from this dotenv file before running")
 
     install = subparsers.add_parser("install", help="Deploy slices")
     install.add_argument("name", nargs="?", help="Slice name or alias")
@@ -74,6 +79,20 @@ def parse_args():
     mermaid.add_argument("--env-file", help="Path to dotenv file (default: .env.local if present)")
     mermaid.add_argument("--timeout", type=int, default=20, help="Request timeout in seconds")
     mermaid.add_argument("--quiet", action="store_true", help="Suppress informational output")
+
+    run = subparsers.add_parser("run", help="Render Mermaid with receipts/emissions")
+    run.add_argument("--root", default=".", help="Repo root")
+    run.add_argument("--in", dest="input_path", help="Mermaid source file")
+    run.add_argument("--stdin", action="store_true", help="Read Mermaid source from stdin")
+    run.add_argument("--format", choices=["json", "svg"], default="svg", help="Worker output format")
+    run.add_argument("--out", help="Write output to PATH instead of stdout")
+    run.add_argument("--env-file", help="Load env vars from this dotenv file before running")
+    run.add_argument("--offline", action="store_true", help="Skip contacting the worker and run structural checks only")
+
+    replay = subparsers.add_parser("replay", help="Verify a prior run by hash")
+    replay.add_argument("run_id", help="Run id to replay")
+    replay.add_argument("--root", default=".", help="Repo root")
+    replay.add_argument("--runs-dir", help="Override runs directory")
 
     return parser.parse_args()
 
@@ -565,6 +584,60 @@ def normalize_mermaid_text(value: str) -> str:
     return cleaned
 
 
+def normalize_input_for_hash(value: str) -> str:
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.rstrip(" \t") for line in normalized.split("\n")]
+    if lines and lines[0].startswith("\ufeff"):
+        lines[0] = lines[0].lstrip("\ufeff")
+    while lines and lines[-1] == "":
+        lines.pop()
+    return "\n".join(lines) + "\n"
+
+
+def sha256_digest(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def utc_now():
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def isoformat_utc(dt: datetime.datetime) -> str:
+    return dt.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def get_runs_dir(root: Path, override: str | None = None) -> Path:
+    value = override or os.environ.get("GEARY_RUNS_DIR") or "./runs"
+    path = Path(value)
+    if not path.is_absolute():
+        path = root / path
+    return path
+
+
+def generate_run_id() -> str:
+    stamp = utc_now().strftime("%Y%m%dT%H%M%SZ")
+    rand = os.urandom(4).hex()
+    return f"{stamp}_{rand}"
+
+
+def append_emission(emissions_path: Path, run_id: str, event_type: str, data: dict):
+    event = {
+        "ts": isoformat_utc(utc_now()),
+        "run_id": run_id,
+        "type": event_type,
+        "data": data,
+    }
+    emissions_path.parent.mkdir(parents=True, exist_ok=True)
+    with emissions_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
+def write_receipt(path: Path, receipt: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(receipt, indent=2, ensure_ascii=False)
+    path.write_text(payload + "\n", encoding="utf-8")
+
+
 def load_dotenv_file(path: Path):
     if not path.is_file():
         return
@@ -610,6 +683,8 @@ def read_mermaid_input(root: Path, args) -> str:
             print(f"Mermaid input file not found: {source}", file=sys.stderr)
             raise SystemExit(2)
         return source.read_text(encoding="utf-8")
+    if getattr(args, "stdin", False):
+        return sys.stdin.read()
     if sys.stdin.isatty():
         print("Provide Mermaid source via --in <file> or pipe data to stdin.", file=sys.stderr)
         raise SystemExit(2)
@@ -620,6 +695,83 @@ def build_render_url(base_url: str) -> str:
     if base_url.endswith("/render"):
         return base_url
     return base_url.rstrip("/") + "/render"
+
+
+def perform_worker_request(
+    mermaid_text: str,
+    fmt: str,
+    worker_url: str,
+    key: str,
+    request_id: str | None,
+    timeout: int,
+):
+    url = build_render_url(worker_url)
+    payload = {"mermaid": mermaid_text, "format": fmt}
+    if request_id:
+        payload["id"] = request_id
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-Geary-Key": key,
+        },
+    )
+    started = time.perf_counter()
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            status = response.status
+            body = response.read()
+    except urllib.error.HTTPError as err:
+        status = err.code
+        body = err.read() if err.fp else b""
+    except urllib.error.URLError as err:
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        return None, None, latency_ms, f"request_failed: {err.reason}"
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    return status, body, latency_ms, None
+
+
+def parse_worker_payload(fmt: str, status: int, body: bytes):
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except json.JSONDecodeError as err:
+        raise RuntimeError("invalid_json_response") from err
+    if status != 200:
+        detail = ""
+        if isinstance(payload, dict):
+            detail = payload.get("error") or payload.get("detail") or ""
+        if not detail:
+            detail = "worker_error"
+        raise RuntimeError(detail)
+    if not payload.get("ok"):
+        error_msg = payload.get("error", "missing ok:true")
+        raise RuntimeError(error_msg)
+    if fmt == "svg":
+        svg = payload.get("svg", "")
+        if "<svg" not in svg:
+            raise RuntimeError("missing svg payload")
+    return payload
+
+
+def map_error_code(http_status: int | None, error_message: str, parse_error: bool = False):
+    if http_status is None:
+        return "UPSTREAM_DOWN"
+    if http_status in {401, 403}:
+        return "AUTH_FAIL"
+    if http_status == 429:
+        return "RATE_LIMIT"
+    if 400 <= http_status < 500:
+        return "BAD_INPUT"
+    if 500 <= http_status < 600:
+        return "UPSTREAM_DOWN"
+    if parse_error:
+        return "RENDER_FAIL"
+    if "render" in error_message.lower():
+        return "RENDER_FAIL"
+    return "UNKNOWN"
 
 
 def call_mermaid_worker(
@@ -742,6 +894,596 @@ def run_mermaid(root: Path, args):
     write_mermaid_output(root, args, response)
 
 
+def offline_artifact_payload(fmt: str) -> tuple[str, bytes]:
+    if fmt == "svg":
+        content = "<!-- geary offline placeholder -->\n"
+        return "output.svg", content.encode("utf-8")
+    payload = {"ok": True, "offline": True}
+    rendered = json.dumps(payload, indent=2, ensure_ascii=False)
+    return "output.json", (rendered + "\n").encode("utf-8")
+
+
+def compute_input_output_hashes(input_path: Path, output_path: Path) -> tuple[str, str]:
+    normalized = normalize_input_for_hash(input_path.read_text(encoding="utf-8"))
+    input_hash = sha256_digest(normalized.encode("utf-8"))
+    output_hash = sha256_digest(output_path.read_bytes())
+    return input_hash, output_hash
+
+
+def verify_run_hashes(run_dir: Path) -> tuple[bool, str]:
+    receipt_path = run_dir / "receipt.json"
+    if not receipt_path.exists():
+        return False, "missing receipt.json"
+    receipt_data = json.loads(receipt_path.read_text(encoding="utf-8"))
+    fmt = receipt_data.get("format") or "svg"
+    artifacts_dir = run_dir / "artifacts"
+    input_path = artifacts_dir / "input.mmd"
+    output_path = artifacts_dir / ("output.svg" if fmt == "svg" else "output.json")
+    if not input_path.exists() or not output_path.exists():
+        return False, "missing artifacts"
+    input_hash, output_hash = compute_input_output_hashes(input_path, output_path)
+    errors = []
+    if (receipt_data.get("input_hash") or "") != input_hash:
+        errors.append("input hash mismatch")
+    if (receipt_data.get("output_hash") or "") != output_hash:
+        errors.append("output hash mismatch")
+    if errors:
+        return False, "; ".join(errors)
+    return True, ""
+
+
+def perform_offline_invariants(
+    root: Path,
+    run_id: str | None = None,
+    runs_dir_override: str | None = None,
+    sample_input: str = "flowchart TD\n  A-->B\n",
+) -> tuple[bool, str]:
+    final_run_id = run_id or generate_run_id()
+    _, run_dir, artifacts_dir = ensure_run_dirs(root, final_run_id, runs_dir_override)
+    run_id = run_dir.name
+    emissions_path = run_dir / "emissions.ndjson"
+    receipt_path = run_dir / "receipt.json"
+    started_at = utc_now()
+
+    append_emission(emissions_path, run_id, "run.started", {"command": "doctor-offline"})
+
+    geary_key = os.environ.get("GEARY_KEY")
+    worker_url = os.environ.get("WORKER_URL")
+    append_emission(
+        emissions_path,
+        run_id,
+        "env.checked",
+        {"geary_key_present": bool(geary_key), "worker_url_present": bool(worker_url)},
+    )
+    append_emission(emissions_path, run_id, "auth.present", {"present": bool(geary_key)})
+
+    normalized = normalize_input_for_hash(sample_input)
+    input_bytes = normalized.encode("utf-8")
+    input_hash = sha256_digest(input_bytes)
+    input_path = artifacts_dir / "input.mmd"
+    write_artifact(input_path, input_bytes)
+    append_emission(
+        emissions_path,
+        run_id,
+        "artifact.written",
+        {"path": str(input_path), "bytes": len(input_bytes), "hash": input_hash},
+    )
+
+    output_name, output_bytes = offline_artifact_payload("svg")
+    output_hash = sha256_digest(output_bytes)
+    output_path = artifacts_dir / output_name
+    write_artifact(output_path, output_bytes)
+    append_emission(
+        emissions_path,
+        run_id,
+        "artifact.written",
+        {"path": str(output_path), "bytes": len(output_bytes), "hash": output_hash, "offline": True},
+    )
+
+    receipt = {
+        "run_id": run_id,
+        "command": "doctor-offline",
+        "worker_url": worker_url or "",
+        "input_hash": input_hash,
+        "output_hash": output_hash,
+        "format": "svg",
+        "started_at": isoformat_utc(started_at),
+        "finished_at": isoformat_utc(utc_now()),
+        "status": "ok",
+        "http_status": None,
+        "latency_ms": None,
+        "error_code": "",
+        "error_message": "",
+    }
+    write_receipt(receipt_path, receipt)
+    append_emission(emissions_path, run_id, "receipt.written", {"path": str(receipt_path)})
+    append_emission(emissions_path, run_id, "run.completed", {"status": "ok"})
+
+    if not emissions_path.exists() or emissions_path.stat().st_size == 0:
+        return False, "missing emissions log"
+
+    verified, reason = verify_run_hashes(run_dir)
+    if not verified:
+        return False, reason
+
+    return True, ""
+
+
+def ensure_run_dirs(root: Path, run_id: str, runs_dir_override: str | None = None):
+    runs_dir = get_runs_dir(root, runs_dir_override)
+    run_dir = runs_dir / run_id
+    artifacts_dir = run_dir / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    return runs_dir, run_dir, artifacts_dir
+
+
+def write_artifact(path: Path, data: bytes):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
+def format_json_output(payload: dict) -> bytes:
+    rendered = json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False)
+    return (rendered + "\n").encode("utf-8")
+
+
+def run_health_doctor(root: Path, args):
+    load_env_files(root, argparse.Namespace(env_file=getattr(args, "env_file", None)))
+    worker_url = os.environ.get("WORKER_URL")
+    geary_key = os.environ.get("GEARY_KEY")
+    key_present = bool(geary_key)
+    worker_present = bool(worker_url)
+    http_status = None
+    latency_ms = None
+    error_code = ""
+    error_message = ""
+    status = "ok"
+    mode_label = "OFFLINE" if args.no_network else "LIVE"
+
+    worker_host = "-"
+    if worker_url:
+        worker_host = urllib.parse.urlparse(worker_url).netloc or worker_url
+
+    if args.no_network:
+        success, reason = perform_offline_invariants(root)
+        if not success:
+            status = "fail"
+            error_code = "OFFLINE_FAIL"
+            error_message = reason or "offline validation failed"
+    else:
+        run_id = generate_run_id()
+        _, run_dir, artifacts_dir = ensure_run_dirs(root, run_id)
+        emissions_path = run_dir / "emissions.ndjson"
+        receipt_path = run_dir / "receipt.json"
+        started_at = utc_now()
+
+        append_emission(emissions_path, run_id, "run.started", {"command": "doctor"})
+        append_emission(
+            emissions_path,
+            run_id,
+            "env.checked",
+            {"geary_key_present": key_present, "worker_url_present": worker_present},
+        )
+        append_emission(emissions_path, run_id, "auth.present", {"present": key_present})
+
+        input_hash = ""
+        output_hash = ""
+        status = "ok"
+
+        if not key_present or not worker_present:
+            status = "fail"
+            if not key_present:
+                error_code = "AUTH_FAIL"
+                error_message = "GEARY_KEY is missing"
+            else:
+                error_code = "UPSTREAM_DOWN"
+                error_message = "WORKER_URL is missing"
+        else:
+            sample = "flowchart TD\n  A-->B\n"
+            normalized = normalize_input_for_hash(sample)
+            input_bytes = normalized.encode("utf-8")
+            input_hash = sha256_digest(input_bytes)
+            input_path = artifacts_dir / "input.mmd"
+            write_artifact(input_path, input_bytes)
+            append_emission(
+                emissions_path,
+                run_id,
+                "artifact.written",
+                {"path": str(input_path), "bytes": len(input_bytes), "hash": input_hash},
+            )
+
+            http_status, body, latency_ms, request_error = perform_worker_request(
+                normalized,
+                "svg",
+                worker_url,
+                geary_key,
+                None,
+                20,
+            )
+            request_payload = {"mermaid": normalized, "format": "svg"}
+            append_emission(
+                emissions_path,
+                run_id,
+                "request.sent",
+                {
+                    "method": "POST",
+                    "path": urllib.parse.urlparse(build_render_url(worker_url)).path,
+                    "body_bytes": len(json.dumps(request_payload, ensure_ascii=False).encode("utf-8")),
+                },
+            )
+            if request_error:
+                status = "fail"
+                error_code = "UPSTREAM_DOWN"
+                error_message = request_error
+            else:
+                response_bytes = len(body or b"")
+                append_emission(
+                    emissions_path,
+                    run_id,
+                    "response.received",
+                    {"status": http_status, "bytes": response_bytes},
+                )
+                try:
+                    payload = parse_worker_payload("svg", http_status, body or b"")
+                    svg_bytes = (payload.get("svg") or "").encode("utf-8")
+                    output_hash = sha256_digest(svg_bytes)
+                    output_path = artifacts_dir / "output.svg"
+                    write_artifact(output_path, svg_bytes)
+                    append_emission(
+                        emissions_path,
+                        run_id,
+                        "artifact.written",
+                        {"path": str(output_path), "bytes": len(svg_bytes), "hash": output_hash},
+                    )
+                except RuntimeError as err:
+                    status = "fail"
+                    error_message = str(err)
+                    error_code = map_error_code(http_status, error_message, parse_error=True)
+
+        finished_at = utc_now()
+        receipt = {
+            "run_id": run_id,
+            "command": "doctor",
+            "worker_url": worker_url or "",
+            "input_hash": input_hash,
+            "output_hash": output_hash,
+            "format": "svg",
+            "started_at": isoformat_utc(started_at),
+            "finished_at": isoformat_utc(finished_at),
+            "status": status,
+            "http_status": http_status,
+            "latency_ms": latency_ms,
+            "error_code": error_code,
+            "error_message": error_message,
+        }
+        write_receipt(receipt_path, receipt)
+        append_emission(emissions_path, run_id, "receipt.written", {"path": str(receipt_path)})
+        if status == "ok":
+            append_emission(emissions_path, run_id, "run.completed", {"status": status})
+        else:
+            append_emission(emissions_path, run_id, "run.failed", {"error_code": error_code})
+            append_emission(emissions_path, run_id, "run.completed", {"status": status})
+
+    print(f"worker host: {worker_host}")
+    print(f"key present: {'yes' if key_present else 'no'}")
+    print(f"mode: {mode_label}")
+    if http_status is not None:
+        print(f"http status: {http_status}")
+    else:
+        print("http status: -")
+    if latency_ms is not None:
+        print(f"latency ms: {latency_ms}")
+    else:
+        print("latency ms: -")
+
+    if status == "ok":
+        print(f"PASS: geary doctor healthy ({mode_label} mode)")
+        return 0
+    print(f"FAIL: {error_message or 'doctor failed'}")
+    if error_code in {"AUTH_FAIL", "UPSTREAM_DOWN"}:
+        print("Next step: set GEARY_KEY and WORKER_URL for live checks.")
+    elif error_code == "RATE_LIMIT":
+        print("Next step: wait and retry (rate limit).")
+    elif error_code == "BAD_INPUT":
+        print("Next step: check Mermaid payload formatting.")
+    elif error_code == "OFFLINE_FAIL":
+        print("Next step: inspect runs directory for receipts/emissions.")
+    else:
+        print("Next step: retry or inspect worker status.")
+    return 1
+
+
+def run_mermaid_render(root: Path, args, command_name: str, run_id: str, runs_dir_override: str | None = None):
+    load_env_files(root, args)
+    _runs_dir, run_dir, artifacts_dir = ensure_run_dirs(root, run_id, runs_dir_override)
+    emissions_path = run_dir / "emissions.ndjson"
+    receipt_path = run_dir / "receipt.json"
+    started_at = utc_now()
+
+    append_emission(emissions_path, run_id, "run.started", {"command": command_name})
+
+    geary_key = os.environ.get("GEARY_KEY")
+    worker_url = os.environ.get("WORKER_URL")
+    key_present = bool(geary_key)
+    worker_present = bool(worker_url)
+    append_emission(
+        emissions_path,
+        run_id,
+        "env.checked",
+        {"geary_key_present": key_present, "worker_url_present": worker_present},
+    )
+    append_emission(emissions_path, run_id, "auth.present", {"present": key_present})
+
+    input_hash = ""
+    output_hash = ""
+    http_status = None
+    latency_ms = None
+    error_code = ""
+    error_message = ""
+    status = "ok"
+    offline = getattr(args, "offline", False)
+
+    if not offline and (not key_present or not worker_present):
+        status = "fail"
+        if not key_present:
+            error_code = "AUTH_FAIL"
+            error_message = "GEARY_KEY is missing"
+        else:
+            error_code = "UPSTREAM_DOWN"
+            error_message = "WORKER_URL is missing"
+    else:
+        try:
+            raw = read_mermaid_input(root, args)
+        except SystemExit:
+            status = "fail"
+            error_code = "BAD_INPUT"
+            error_message = "Mermaid input is missing."
+        else:
+            normalized = normalize_input_for_hash(raw)
+            if not normalized.strip():
+                status = "fail"
+                error_code = "BAD_INPUT"
+                error_message = "Mermaid input is empty."
+            else:
+                size = len(normalized.encode("utf-8"))
+                if size > MAX_MERMAID_BYTES:
+                    status = "fail"
+                    error_code = "BAD_INPUT"
+                    error_message = f"Mermaid source too large ({size} bytes > {MAX_MERMAID_BYTES})."
+                else:
+                    input_bytes = normalized.encode("utf-8")
+                    input_hash = sha256_digest(input_bytes)
+                    input_path = artifacts_dir / "input.mmd"
+                    write_artifact(input_path, input_bytes)
+                    append_emission(
+                        emissions_path,
+                        run_id,
+                        "artifact.written",
+                        {"path": str(input_path), "bytes": len(input_bytes), "hash": input_hash},
+                    )
+
+                    output_bytes = b""
+                    output_name = ""
+                    if offline:
+                        http_status = None
+                        latency_ms = None
+                        output_name, output_bytes = offline_artifact_payload(args.format)
+                        output_hash = sha256_digest(output_bytes)
+                        output_path = artifacts_dir / output_name
+                        write_artifact(output_path, output_bytes)
+                        append_emission(
+                            emissions_path,
+                            run_id,
+                            "artifact.written",
+                            {"path": str(output_path), "bytes": len(output_bytes), "hash": output_hash, "offline": True},
+                        )
+                    else:
+                        http_status, body, latency_ms, request_error = perform_worker_request(
+                            normalized,
+                            args.format,
+                            worker_url,
+                            geary_key,
+                            None,
+                            20,
+                        )
+                        request_payload = {"mermaid": normalized, "format": args.format}
+                        append_emission(
+                            emissions_path,
+                            run_id,
+                            "request.sent",
+                            {
+                                "method": "POST",
+                                "path": urllib.parse.urlparse(build_render_url(worker_url)).path,
+                                "body_bytes": len(json.dumps(request_payload, ensure_ascii=False).encode("utf-8")),
+                            },
+                        )
+                        if request_error:
+                            status = "fail"
+                            error_code = "UPSTREAM_DOWN"
+                            error_message = request_error
+                        else:
+                            append_emission(
+                                emissions_path,
+                                run_id,
+                                "response.received",
+                                {"status": http_status, "bytes": len(body or b"")},
+                            )
+                            try:
+                                payload = parse_worker_payload(args.format, http_status, body or b"")
+                                if args.format == "svg":
+                                    output_bytes = (payload.get("svg") or "").encode("utf-8")
+                                    output_name = "output.svg"
+                                else:
+                                    output_bytes = format_json_output(payload)
+                                    output_name = "output.json"
+                                output_hash = sha256_digest(output_bytes)
+                                output_path = artifacts_dir / output_name
+                                write_artifact(output_path, output_bytes)
+                                append_emission(
+                                    emissions_path,
+                                    run_id,
+                                    "artifact.written",
+                                    {"path": str(output_path), "bytes": len(output_bytes), "hash": output_hash},
+                                )
+                            except RuntimeError as err:
+                                status = "fail"
+                                error_message = str(err)
+                                error_code = map_error_code(http_status, error_message, parse_error=True)
+
+                    if args.out and status == "ok":
+                        target = Path(args.out)
+                        if not target.is_absolute():
+                            target = root / target
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(output_bytes)
+                    elif status == "ok":
+                        sys.stdout.buffer.write(output_bytes)
+                        if not output_bytes.endswith(b"\n"):
+                            sys.stdout.buffer.write(b"\n")
+
+    finished_at = utc_now()
+    receipt = {
+        "run_id": run_id,
+        "command": command_name,
+        "worker_url": worker_url or "",
+        "input_hash": input_hash,
+        "output_hash": output_hash,
+        "format": args.format,
+        "started_at": isoformat_utc(started_at),
+        "finished_at": isoformat_utc(finished_at),
+        "status": status,
+        "http_status": http_status,
+        "latency_ms": latency_ms,
+        "error_code": error_code,
+        "error_message": error_message,
+    }
+    write_receipt(receipt_path, receipt)
+    append_emission(emissions_path, run_id, "receipt.written", {"path": str(receipt_path)})
+    if status == "ok":
+        append_emission(emissions_path, run_id, "run.completed", {"status": status})
+    else:
+        append_emission(emissions_path, run_id, "run.failed", {"error_code": error_code})
+        append_emission(emissions_path, run_id, "run.completed", {"status": status})
+
+    print(f"run id: {run_id}", file=sys.stderr)
+    if status != "ok" and error_message:
+        print(f"{command_name} failed: {error_message}", file=sys.stderr)
+    return 0 if status == "ok" else 1
+
+
+def run_run(root: Path, args):
+    if args.input_path and args.stdin:
+        print("Choose either --in <file> or --stdin.", file=sys.stderr)
+        return 2
+    run_id = generate_run_id()
+    return run_mermaid_render(root, args, "run", run_id)
+
+
+def run_replay(root: Path, args):
+    runs_dir = get_runs_dir(root, args.runs_dir)
+    target_dir = runs_dir / args.run_id
+    receipt_path = target_dir / "receipt.json"
+    artifacts_dir = target_dir / "artifacts"
+
+    if not receipt_path.exists():
+        print(f"Missing receipt.json for run {args.run_id}", file=sys.stderr)
+        return 2
+
+    receipt_data = json.loads(receipt_path.read_text(encoding="utf-8"))
+    fmt = receipt_data.get("format") or "svg"
+    worker_url = receipt_data.get("worker_url") or ""
+
+    input_path = artifacts_dir / "input.mmd"
+    if fmt == "svg":
+        output_path = artifacts_dir / "output.svg"
+    else:
+        output_path = artifacts_dir / "output.json"
+
+    if not input_path.exists() or not output_path.exists():
+        print("Missing input/output artifacts for replay.", file=sys.stderr)
+        return 2
+
+    replay_run_id = generate_run_id()
+    _, run_dir, artifacts_dir_new = ensure_run_dirs(root, replay_run_id, args.runs_dir)
+    emissions_path = run_dir / "emissions.ndjson"
+    receipt_out_path = run_dir / "receipt.json"
+    started_at = utc_now()
+    append_emission(emissions_path, replay_run_id, "run.started", {"command": "replay", "target_run_id": args.run_id})
+    append_emission(
+        emissions_path,
+        replay_run_id,
+        "env.checked",
+        {"geary_key_present": bool(os.environ.get("GEARY_KEY")), "worker_url_present": bool(os.environ.get("WORKER_URL"))},
+    )
+    append_emission(
+        emissions_path,
+        replay_run_id,
+        "auth.present",
+        {"present": bool(os.environ.get("GEARY_KEY"))},
+    )
+
+    input_text = input_path.read_text(encoding="utf-8")
+    normalized = normalize_input_for_hash(input_text)
+    input_bytes = normalized.encode("utf-8")
+    input_hash = sha256_digest(input_bytes)
+    output_bytes = output_path.read_bytes()
+    output_hash = sha256_digest(output_bytes)
+
+    input_written_path = artifacts_dir_new / "input.mmd"
+    output_written_path = artifacts_dir_new / output_path.name
+    write_artifact(input_written_path, input_bytes)
+    write_artifact(output_written_path, output_bytes)
+    append_emission(
+        emissions_path,
+        replay_run_id,
+        "artifact.written",
+        {"path": str(input_written_path), "bytes": len(input_bytes), "hash": input_hash},
+    )
+    append_emission(
+        emissions_path,
+        replay_run_id,
+        "artifact.written",
+        {"path": str(output_written_path), "bytes": len(output_bytes), "hash": output_hash},
+    )
+
+    receipt_input_hash = receipt_data.get("input_hash") or ""
+    receipt_output_hash = receipt_data.get("output_hash") or ""
+
+    verified_input = input_hash == receipt_input_hash
+    verified_output = output_hash == receipt_output_hash
+    status = "ok" if (verified_input and verified_output) else "fail"
+
+    finished_at = utc_now()
+    receipt = {
+        "run_id": replay_run_id,
+        "command": "replay",
+        "worker_url": worker_url,
+        "input_hash": input_hash,
+        "output_hash": output_hash,
+        "format": fmt,
+        "started_at": isoformat_utc(started_at),
+        "finished_at": isoformat_utc(finished_at),
+        "status": status,
+        "http_status": None,
+        "latency_ms": None,
+        "error_code": "" if status == "ok" else "UNKNOWN",
+        "error_message": "" if status == "ok" else "hash verification failed",
+    }
+    write_receipt(receipt_out_path, receipt)
+    append_emission(emissions_path, replay_run_id, "receipt.written", {"path": str(receipt_out_path)})
+    if status == "ok":
+        append_emission(emissions_path, replay_run_id, "run.completed", {"status": status})
+    else:
+        append_emission(emissions_path, replay_run_id, "run.failed", {"error_code": "UNKNOWN"})
+        append_emission(emissions_path, replay_run_id, "run.completed", {"status": status})
+
+    print(f"input hash verified: {'yes' if verified_input else 'no'}")
+    print(f"output hash verified: {'yes' if verified_output else 'no'}")
+    print(f"status: {status}")
+
+    return 0 if status == "ok" else 1
+
+
 def run_list(root: Path):
     registry, slices = load_registry(root)
     aliases = parse_aliases(root / "geary" / "slices.yml")
@@ -802,7 +1544,7 @@ def run_graph(root: Path):
         print(f"{name}{format_alias(name, alias_map)} -> {dep_str}")
 
 
-def run_doctor(root: Path):
+def run_repo_doctor(root: Path):
     _, slices = load_registry(root)
     aliases = parse_aliases(root / "geary" / "slices.yml")
     errors = []
@@ -1101,14 +1843,21 @@ def main():
         run_graph(root)
         return 0
     if args.command == "doctor":
-        run_doctor(root)
-        return 0
+        use_repo = args.repo or ("--root" in sys.argv)
+        if use_repo:
+            run_repo_doctor(root)
+            return 0
+        return run_health_doctor(root, args)
     if args.command == "install":
         run_install(root, args)
         return 0
     if args.command == "mermaid":
         run_mermaid(root, args)
         return 0
+    if args.command == "run":
+        return run_run(root, args)
+    if args.command == "replay":
+        return run_replay(root, args)
     if args.command == "recipe":
         if args.recipe_command == "compile":
             run_recipe_compile(root)
