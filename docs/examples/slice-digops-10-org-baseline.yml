@@ -1,0 +1,13 @@
+version: 1
+slice:
+  id: digops-10-org-baseline
+  number: 10
+  band: boot
+  title: Org Baseline
+  description: Minimal org baseline policy and validation guardrails for DIG Ops.
+  owner: DIG Ops / Platform
+policy:
+  bounded: true
+  owner: DIG Ops / Platform
+  docs:
+    - docs/ui/org-baseline.md

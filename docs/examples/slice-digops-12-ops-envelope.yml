@@ -1,0 +1,13 @@
+version: 1
+slice:
+  id: digops-12-ops-envelope
+  number: 12
+  band: services
+  title: Ops Envelope
+  description: Shared operational envelope for policy, observability, and guardrails.
+  owner: DIG Ops / Platform
+policy:
+  bounded: true
+  owner: DIG Ops / Platform
+  docs:
+    - docs/ui/ops-envelope.md

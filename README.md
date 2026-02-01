@@ -139,6 +139,14 @@ Short, human-curated index of slices + dependencies. See `docs/geary/catalog.md`
 - Run `bash scripts/catalog_lint.sh` to generate `build/catalog.yml` + `build/catalog_report.md`.
 - If it’s a real slice, refresh the registry: `python tools/geary/geary.py update --root .`.
 
+Solaris-structured slices:
+- [Org Baseline](docs/ui/org-baseline.md)
+- [Ops Envelope](docs/ui/ops-envelope.md)
+- [Membership MVP](docs/ui/membership-mvp.md)
+- [Membership Renewal Loop](docs/ui/membership-renewal-loop.md)
+- [Emissions Console](docs/ui/emissions-console.md)
+- [Email Comms Runner](docs/ui/email-comms-runner.md)
+
 ```yaml
 version: 1
 slice:
