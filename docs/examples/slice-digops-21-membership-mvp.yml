@@ -1,0 +1,13 @@
+version: 1
+slice:
+  id: digops-21-membership-mvp
+  number: 21
+  band: domain
+  title: Membership MVP
+  description: Minimal membership domain slice for core status + reporting.
+  owner: DIG Ops / Membership
+policy:
+  bounded: true
+  owner: DIG Ops / Membership
+  docs:
+    - docs/ui/membership-mvp.md
