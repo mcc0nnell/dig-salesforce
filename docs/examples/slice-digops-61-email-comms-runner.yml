@@ -1,0 +1,13 @@
+version: 1
+slice:
+  id: digops-61-email-comms-runner
+  number: 61
+  band: comms+integrations
+  title: Email Comms Runner
+  description: Email comms runner interface for scheduled and on-demand sends.
+  owner: DIG Ops / Comms
+policy:
+  bounded: true
+  owner: DIG Ops / Comms
+  docs:
+    - docs/ui/email-comms-runner.md

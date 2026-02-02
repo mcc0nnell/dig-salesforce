@@ -1,0 +1,13 @@
+version: 1
+slice:
+  id: digops-45-ui-emissions-console
+  number: 45
+  band: ui
+  title: Emissions Console
+  description: UI console for emissions visibility, review, and operational controls.
+  owner: DIG Ops / Ops UI
+policy:
+  bounded: true
+  owner: DIG Ops / Ops UI
+  docs:
+    - docs/ui/emissions-console.md

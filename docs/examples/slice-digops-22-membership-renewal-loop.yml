@@ -1,0 +1,15 @@
+version: 1
+slice:
+  id: digops-22-membership-renewal-loop
+  number: 22
+  band: domain
+  title: Membership Renewal Loop
+  description: Renewal loop orchestration for membership lifecycle follow-ups.
+  owner: DIG Ops / Membership
+depends_on:
+  - digops-21-membership-mvp
+policy:
+  bounded: true
+  owner: DIG Ops / Membership
+  docs:
+    - docs/ui/membership-renewal-loop.md
