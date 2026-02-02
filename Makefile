@@ -17,7 +17,8 @@ MANIFEST ?= manifest/dig.xml
         deploy-governance deploy-membership \
         deploy-membership-panel validate-membership-panel \
         force-validate force-deploy \
-        clean
+        clean \
+        dig-smoke dig-validate-smoke
 
 help:
 	@echo "Targets:"
@@ -101,10 +102,17 @@ dig-pull:
 
 # Legacy targets (useful while transitioning; can be removed later)
 force-validate:
+	@if [ -z "$$FORCE_APP_OK" ]; then echo "force-app is legacy/noisy. Set FORCE_APP_OK=1 to run."; exit 1; fi
 	sf project deploy start --target-org $(ORG) --source-dir force-app --dry-run
 
 force-deploy:
+	@if [ -z "$$FORCE_APP_OK" ]; then echo "force-app is legacy/noisy. Set FORCE_APP_OK=1 to run."; exit 1; fi
 	sf project deploy start --target-org $(ORG) --source-dir force-app
 
 clean:
-	rm -rf .sf .sfdx
+	 rm -rf .sf .sfdx
+
+dig-smoke:
+	 @bash ./dig-smoke-membership-join.sh
+
+dig-validate-smoke: dig-validate dig-smoke

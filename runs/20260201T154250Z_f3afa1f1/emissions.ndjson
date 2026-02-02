@@ -1,0 +1,7 @@
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "run.started", "data": {"command": "replay", "target_run_id": "20260201T154250Z_8f0e3871"}}
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "env.checked", "data": {"geary_key_present": true, "worker_url_present": true}}
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "auth.present", "data": {"present": true}}
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "artifact.written", "data": {"path": "/Users/mcc0nnell/Development/dig-sf/runs/20260201T154250Z_f3afa1f1/artifacts/input.mmd", "bytes": 21, "hash": "sha256:e4e866d92fcefbe0dc68c378739a3a772d37e58b16a08ef2daf05d07af4ff6e1"}}
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "artifact.written", "data": {"path": "/Users/mcc0nnell/Development/dig-sf/runs/20260201T154250Z_f3afa1f1/artifacts/output.svg", "bytes": 35, "hash": "sha256:365e73a14ecbddf8de1ddf5e388ae7fca5835f2c532bc04c55598981ad5c1be0"}}
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "receipt.written", "data": {"path": "/Users/mcc0nnell/Development/dig-sf/runs/20260201T154250Z_f3afa1f1/receipt.json"}}
+{"ts": "2026-02-01T15:42:50Z", "run_id": "20260201T154250Z_f3afa1f1", "type": "run.completed", "data": {"status": "ok"}}

@@ -1,0 +1,28 @@
+{"ts":"2026-02-01T16:56:32Z","run_id":"20260201T165632Z_11b933fc","type":"run.started","data":{"command":"repair","bundle":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan"}}
+{"ts":"2026-02-01T16:56:32Z","run_id":"20260201T165632Z_11b933fc","type":"validate_log.parsed","data":{"path":"/Users/mcc0nnell/Development/dig-sf/runs/validate-backlabel.log","targets":["DIG_Membership_Screened_Onboarding"]}}
+{"ts":"2026-02-01T16:56:34Z","run_id":"20260201T165632Z_11b933fc","type":"blueprint.generated","data":{"path":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/blueprint.json","targets":["DIG_Membership_Screened_Onboarding"]}}
+{"ts":"2026-02-01T16:56:34Z","run_id":"20260201T165632Z_11b933fc","type":"flow.orphaned_artifact","data":{"targets":["DIG_Membership_Screened_Onboarding"],"report":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/orphan_report.md"}}
+{"ts":"2026-02-01T16:56:34Z","run_id":"20260201T165632Z_11b933fc","type":"blueprint.validated","data":{"status":"ok"}}
+{"ts":"2026-02-01T16:56:34Z","run_id":"20260201T165632Z_11b933fc","type":"run.completed","data":{"status":"ok"}}
+{"ts":"2026-02-01T16:56:37Z","run_id":"20260201T165632Z_11b933fc","type":"run.started","data":{"command":"apply","bundle":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan"}}
+{"ts":"2026-02-01T16:56:37Z","run_id":"20260201T165632Z_11b933fc","type":"blueprint.validated","data":{"status":"ok"}}
+{"ts":"2026-02-01T16:56:37Z","run_id":"20260201T165632Z_11b933fc","type":"patch.planned","data":{"targets":["DIG_Membership_Screened_Onboarding"]}}
+{"ts":"2026-02-01T16:56:37Z","run_id":"20260201T165632Z_11b933fc","type":"flow.orphaned_artifact","data":{"target":"DIG_Membership_Screened_Onboarding","report":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/orphan_report.md"}}
+{"ts":"2026-02-01T16:56:37Z","run_id":"20260201T165632Z_11b933fc","type":"patch.applied","data":{"target":"DIG_Membership_Screened_Onboarding","kind":"flow","path":"/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/DIG_Membership_Screened_Onboarding.flow-meta.xml","action":"orphaned_artifact","before_hash":"","after_hash":"","error_code":"ORPHANED_ARTIFACT"}}
+{"ts":"2026-02-01T16:57:34Z","run_id":"20260201T165632Z_11b933fc","type":"validate.reran","data":{"command":"make dig-validate","exit_code":0,"status":"ok"}}
+{"ts":"2026-02-01T16:57:34Z","run_id":"20260201T165632Z_11b933fc","type":"run.failed","data":{"error_code":"APPLY_FAILED"}}
+{"ts":"2026-02-01T16:57:34Z","run_id":"20260201T165632Z_11b933fc","type":"run.completed","data":{"status":"fail"}}
+{"ts":"2026-02-01T17:00:34Z","run_id":"20260201T170034Z_25ad9058","type":"run.started","data":{"command":"repair","bundle":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan"}}
+{"ts":"2026-02-01T17:00:34Z","run_id":"20260201T170034Z_25ad9058","type":"validate_log.parsed","data":{"path":"/Users/mcc0nnell/Development/dig-sf/runs/validate-backlabel.log","targets":["DIG_Membership_Screened_Onboarding"]}}
+{"ts":"2026-02-01T17:00:36Z","run_id":"20260201T170034Z_25ad9058","type":"blueprint.generated","data":{"path":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/blueprint.json","targets":["DIG_Membership_Screened_Onboarding"]}}
+{"ts":"2026-02-01T17:00:36Z","run_id":"20260201T170034Z_25ad9058","type":"flow.orphaned_artifact","data":{"targets":["DIG_Membership_Screened_Onboarding"],"report":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/orphan_report.md"}}
+{"ts":"2026-02-01T17:00:36Z","run_id":"20260201T170034Z_25ad9058","type":"blueprint.validated","data":{"status":"ok"}}
+{"ts":"2026-02-01T17:00:36Z","run_id":"20260201T170034Z_25ad9058","type":"run.completed","data":{"status":"ok"}}
+{"ts":"2026-02-01T17:00:41Z","run_id":"20260201T170034Z_25ad9058","type":"run.started","data":{"command":"apply","bundle":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan"}}
+{"ts":"2026-02-01T17:00:41Z","run_id":"20260201T170034Z_25ad9058","type":"blueprint.validated","data":{"status":"ok"}}
+{"ts":"2026-02-01T17:00:41Z","run_id":"20260201T170034Z_25ad9058","type":"patch.planned","data":{"targets":["DIG_Membership_Screened_Onboarding"]}}
+{"ts":"2026-02-01T17:00:41Z","run_id":"20260201T170034Z_25ad9058","type":"flow.orphaned_artifact","data":{"target":"DIG_Membership_Screened_Onboarding","report":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/orphan_report.md"}}
+{"ts":"2026-02-01T17:00:41Z","run_id":"20260201T170034Z_25ad9058","type":"patch.applied","data":{"target":"DIG_Membership_Screened_Onboarding","kind":"flow","path":"/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/DIG_Membership_Screened_Onboarding.flow-meta.xml","action":"orphaned_artifact","before_hash":null,"after_hash":null,"error_code":"ORPHANED_ARTIFACT"}}
+{"ts":"2026-02-01T17:01:14Z","run_id":"20260201T170034Z_25ad9058","type":"validate.reran","data":{"command":"make dig-validate","exit_code":0,"status":"ok"}}
+{"ts":"2026-02-01T17:01:14Z","run_id":"20260201T170034Z_25ad9058","type":"run.failed","data":{"error_code":"APPLY_FAILED"}}
+{"ts":"2026-02-01T17:01:14Z","run_id":"20260201T170034Z_25ad9058","type":"run.completed","data":{"status":"ok_with_findings"}}

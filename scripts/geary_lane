@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILES=(".env.local" ".env")
+
+load_env() {
+  for candidate in "${ENV_FILES[@]}"; do
+    local path="$ROOT/$candidate"
+    if [[ -f "$path" ]]; then
+      set -a
+      # shellcheck source=/dev/null
+      source "$path"
+      set +a
+    fi
+  done
+}
+
+load_env
+cd "$ROOT"
+
+"$ROOT/scripts/geary" auth
+
+if ! make dig-validate; then
+  echo
+  echo "make dig-validate failed. Run the repair lane to generate/apply fixes:"
+  echo "  bash scripts/geary_repair_lane"
+  exit 1
+fi

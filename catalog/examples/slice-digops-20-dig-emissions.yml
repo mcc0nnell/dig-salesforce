@@ -1,0 +1,14 @@
+version: 1
+slice:
+  id: digops-20-dig-emissions
+  number: 20
+  band: evidence
+  title: DIG Emissions
+  description: Platform Events spine with durable sink and console.
+  owner: DIG Ops / Platform
+policy:
+  bounded: true
+  owner: DIG Ops / Platform
+  docs:
+    - docs/dig/emissions.md
+    - docs/slices/dig.emissions.slice.md

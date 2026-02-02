@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILES=(".env.local" ".env")
+RUNS_DIR="$ROOT/runs"
+VALIDATE_LOG="$RUNS_DIR/validate.log"
+BUNDLE_DIR="$RUNS_DIR/repair-pack"
+
+load_env() {
+  for candidate in "${ENV_FILES[@]}"; do
+    local path="$ROOT/$candidate"
+    if [[ -f "$path" ]]; then
+      set -a
+      # shellcheck source=/dev/null
+      source "$path"
+      set +a
+    fi
+  done
+}
+
+load_env
+mkdir -p "$RUNS_DIR"
+cd "$ROOT"
+
+VALIDATE_EXIT=0
+if ! make dig-validate 2>&1 | tee "$VALIDATE_LOG"; then
+  VALIDATE_EXIT=${PIPESTATUS[0]:-1}
+fi
+
+rm -rf "$BUNDLE_DIR"
+
+if ! python3 tools/geary/geary.py repair --root . --from-validate-log "runs/validate.log" --out "$BUNDLE_DIR"; then
+  echo "geary repair failed" >&2
+fi
+
+APPLY_EXIT=0
+if ! python3 tools/geary/geary.py apply --root . --bundle "$BUNDLE_DIR"; then
+  APPLY_EXIT=$?
+fi
+
+RECEIPT_PATH="$BUNDLE_DIR/receipt.json"
+EMISSIONS_PATH="$BUNDLE_DIR/emissions.ndjson"
+ORPHAN_REPORT="$BUNDLE_DIR/orphan_report.md"
+RESAVE_INSTRUCTIONS="$BUNDLE_DIR/resave_instructions.md"
+
+if [[ -r "$RECEIPT_PATH" ]]; then
+  if ! RECEIPT_STATUS=$(python3 - "$RECEIPT_PATH" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    print(data.get("status") or "")
+except Exception as err:
+    raise SystemExit(f"receipt.read.error: {err}")
+PY
+); then
+    RECEIPT_STATUS="read_error"
+  fi
+else
+  RECEIPT_STATUS="missing"
+fi
+
+cat <<INFO
+Receipt: $RECEIPT_PATH
+Receipt status: $RECEIPT_STATUS
+Emissions log: $EMISSIONS_PATH
+INFO
+
+if [[ -f "$ORPHAN_REPORT" ]]; then
+  echo "Orphan report: $ORPHAN_REPORT"
+fi
+if [[ -f "$RESAVE_INSTRUCTIONS" ]]; then
+  echo "Resave instructions: $RESAVE_INSTRUCTIONS"
+fi
+
+if [[ "$RECEIPT_STATUS" != "ok" || $VALIDATE_EXIT -ne 0 || $APPLY_EXIT -ne 0 ]]; then
+  echo "Repair operation did not complete cleanly (validate exit: $VALIDATE_EXIT, apply exit: $APPLY_EXIT)." >&2
+  exit 1
+fi

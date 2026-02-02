@@ -1,0 +1,12 @@
+{"ts": "2026-02-01T16:37:45Z", "run_id": "20260201T163745Z_ccc17769", "type": "run.started", "data": {"command": "repair", "bundle": "/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-backlabel"}}
+{"ts": "2026-02-01T16:37:45Z", "run_id": "20260201T163745Z_ccc17769", "type": "validate_log.parsed", "data": {"path": "/Users/mcc0nnell/Development/dig-sf/runs/validate-backlabel.log", "targets": ["DIG_Membership_Screened_Onboarding"]}}
+{"ts": "2026-02-01T16:37:45Z", "run_id": "20260201T163745Z_ccc17769", "type": "blueprint.generated", "data": {"path": "/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-backlabel/blueprint.json", "targets": ["DIG_Membership_Screened_Onboarding"]}}
+{"ts": "2026-02-01T16:37:45Z", "run_id": "20260201T163745Z_ccc17769", "type": "blueprint.validated", "data": {"status": "ok"}}
+{"ts": "2026-02-01T16:37:45Z", "run_id": "20260201T163745Z_ccc17769", "type": "run.completed", "data": {"status": "ok"}}
+{"ts": "2026-02-01T16:37:47Z", "run_id": "20260201T163745Z_ccc17769", "type": "run.started", "data": {"command": "apply", "bundle": "/Users/mcc0nnell/Development/dig-sf/runs/repair-pack-backlabel"}}
+{"ts": "2026-02-01T16:37:47Z", "run_id": "20260201T163745Z_ccc17769", "type": "blueprint.validated", "data": {"status": "ok"}}
+{"ts": "2026-02-01T16:37:47Z", "run_id": "20260201T163745Z_ccc17769", "type": "patch.planned", "data": {"targets": ["DIG_Membership_Screened_Onboarding"]}}
+{"ts": "2026-02-01T16:37:47Z", "run_id": "20260201T163745Z_ccc17769", "type": "patch.applied", "data": {"target": "DIG_Membership_Screened_Onboarding", "kind": "flow", "path": "/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/DIG_Membership_Screened_Onboarding.flow-meta.xml", "action": "patched", "before_hash": "sha256:daf964b2f3d4620a436d8d604f0a1e2ef7a8e419de0a81d7b1327f2ed8c6241c", "after_hash": "sha256:cad4c06d68da5ece7f2d9624b6a7c2068a2b2da8a07163154819f825d81265bf", "error_code": ""}}
+{"ts": "2026-02-01T16:38:10Z", "run_id": "20260201T163745Z_ccc17769", "type": "validate.reran", "data": {"command": "make dig-validate", "exit_code": 2, "status": "fail"}}
+{"ts": "2026-02-01T16:38:10Z", "run_id": "20260201T163745Z_ccc17769", "type": "run.failed", "data": {"error_code": "APPLY_FAILED"}}
+{"ts": "2026-02-01T16:38:10Z", "run_id": "20260201T163745Z_ccc17769", "type": "run.completed", "data": {"status": "fail"}}

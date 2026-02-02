@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1.1",
+  "run_id": "20260201T161627Z_76e4cb26",
+  "mode": "offline",
+  "status": "fail",
+  "targets": [
+    "DigSlaScheduler",
+    "DIG_Membership_Screened_Onboarding",
+    "Summit_Sample_Recipe"
+  ],
+  "patches": [
+    {
+      "kind": "apex_class",
+      "name": "DigSlaScheduler",
+      "path": "/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/classes/DigSlaScheduler.cls",
+      "before_hash": "sha256:67ceb55d29c9cd0ac6b37a81bfe7e08d27a9df5402e727b93746420f670777ed",
+      "after_hash": "sha256:9046fd3c347d1bbe0a0703b1e9553ddd49fc1fe40c2fe392a6ee0b69384e3dd3",
+      "action": "patched",
+      "error_code": "",
+      "error_message": ""
+    },
+    {
+      "kind": "flow",
+      "name": "DIG_Membership_Screened_Onboarding",
+      "path": "/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/DIG_Membership_Screened_Onboarding.flow-meta.xml",
+      "before_hash": "sha256:2b8974e3da22da5925d08e2e9d430173a086f4af0e15ad5f0280e9490679c9d1",
+      "after_hash": "sha256:daf964b2f3d4620a436d8d604f0a1e2ef7a8e419de0a81d7b1327f2ed8c6241c",
+      "action": "patched",
+      "error_code": "",
+      "error_message": ""
+    },
+    {
+      "kind": "flow",
+      "name": "Summit_Sample_Recipe",
+      "path": "/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/Summit_Sample_Recipe.flow-meta.xml",
+      "before_hash": "sha256:ffc0f5e806a4e0e4cc004e8ea612accfcb680c7b7bbb5d4983aa341fd519dd73",
+      "after_hash": "sha256:0d76afb3354fdb35eddfa4830d1d072759eccf415d2b3e48dc2fda1df73cf841",
+      "action": "patched",
+      "error_code": "",
+      "error_message": ""
+    }
+  ],
+  "validate": {
+    "command": "make dig-validate",
+    "exit_code": 2,
+    "summary": "│ Flow │ Summit_Sample_Recipe               │ Error parsing file: Element {}actions invalid at this location in type Flow (42:12)         │ 42:12       │\n└──────┴────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────┴─────────────┘\n\n\nTest Results Summary\nPassing: 0\nFailing: 0\nTotal: 0\nDry-run complete.\n\n ›   Warning: @salesforce/cli update available from 2.119.8 to 2.120.3.\nmake: *** [dig-validate] Error 1"
+  },
+  "started_at": "2026-02-01T16:16:27Z",
+  "finished_at": "2026-02-01T16:16:57Z"
+}

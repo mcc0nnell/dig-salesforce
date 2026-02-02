@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1.2",
+  "run_id": "20260201T170034Z_25ad9058",
+  "mode": "offline",
+  "status": "ok_with_findings",
+  "targets": [
+    "DIG_Membership_Screened_Onboarding"
+  ],
+  "findings": [
+    {
+      "type": "orphaned_artifact",
+      "target": "DIG_Membership_Screened_Onboarding"
+    }
+  ],
+  "patches": [
+    {
+      "kind": "flow",
+      "name": "DIG_Membership_Screened_Onboarding",
+      "path": "/Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/DIG_Membership_Screened_Onboarding.flow-meta.xml",
+      "before_hash": null,
+      "after_hash": null,
+      "action": "orphaned_artifact",
+      "error_code": "ORPHANED_ARTIFACT",
+      "error_message": "orphaned_flow; see /Users/mcc0nnell/Development/dig-sf/runs/repair-pack-orphan/orphan_report.md; recommended: git rm /Users/mcc0nnell/Development/dig-sf/dig-src/main/default/flows/DIG_Membership_Screened_Onboarding.flow-meta.xml",
+      "file_present": false
+    }
+  ],
+  "validate": {
+    "command": "make dig-validate",
+    "exit_code": 0,
+    "summary": "│ Unchanged │ summit__SummitEventsReports                                                     │ ReportFolder             │ dig-src/main/default/reports/summit__SummitEventsReports.reportFolder-meta.xml                                               │\n└───────────┴─────────────────────────────────────────────────────────────────────────────────┴──────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘\n\n\nTest Results Summary\nPassing: 44\nFailing: 0\nTotal: 44\nTime: 7968\nDry-run complete.\n\n ›   Warning: @salesforce/cli update available from 2.119.8 to 2.120.3."
+  },
+  "started_at": "2026-02-01T17:00:41Z",
+  "finished_at": "2026-02-01T17:01:14Z"
+}

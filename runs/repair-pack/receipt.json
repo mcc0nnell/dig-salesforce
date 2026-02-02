@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1.2",
+  "run_id": "20260201T210134Z_882380a3",
+  "mode": "offline",
+  "status": "fail",
+  "targets": [],
+  "patches": [],
+  "validate": {
+    "command": "make dig-validate",
+    "exit_code": -1,
+    "summary": "no recognized repair targets in validate log"
+  },
+  "started_at": "2026-02-01T21:01:34Z",
+  "finished_at": "2026-02-01T21:01:34Z"
+}

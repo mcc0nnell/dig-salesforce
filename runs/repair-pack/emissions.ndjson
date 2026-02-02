@@ -1,0 +1,4 @@
+{"ts":"2026-02-01T21:01:34Z","run_id":"20260201T210134Z_882380a3","type":"run.started","data":{"command":"repair","bundle":"/Users/mcc0nnell/Development/dig-sf/runs/repair-pack"}}
+{"ts":"2026-02-01T21:01:34Z","run_id":"20260201T210134Z_882380a3","type":"validate_log.parsed","data":{"path":"/Users/mcc0nnell/Development/dig-sf/runs/validate.log","targets":[]}}
+{"ts":"2026-02-01T21:01:34Z","run_id":"20260201T210134Z_882380a3","type":"run.failed","data":{"error_code":"NO_TARGETS"}}
+{"ts":"2026-02-01T21:01:34Z","run_id":"20260201T210134Z_882380a3","type":"run.completed","data":{"status":"fail"}}

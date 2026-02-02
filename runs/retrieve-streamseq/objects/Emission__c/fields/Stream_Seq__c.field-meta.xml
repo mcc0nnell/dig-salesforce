@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Stream_Seq__c</fullName>
+    <description>Groupable surrogate: Stream__c + &apos;:&apos; + Sequence__c</description>
+    <externalId>false</externalId>
+    <label>Stream Seq</label>
+    <length>120</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

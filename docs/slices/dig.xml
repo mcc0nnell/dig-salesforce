@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dig>
+    <spines>
+        <slice
+            id="dig.emissions"
+            title="DIG Emissions"
+            status="active"
+            kind="spine"
+            owner="dig.ops"
+            doc="docs/dig/emissions.md"
+            manifest="docs/slices/dig.emissions.slice.md"
+            catalog_id="digops-20-dig-emissions"
+            catalog_manifest="slice-digops-20-dig-emissions.yml"
+            tags="dig,geary,emissions,platform-events,evidence,journal,replay" />
+    </spines>
+</dig>
