@@ -1,6 +1,6 @@
 ---
 recipe: flow
-name: Sample
+name: DIG_Membership_Screened_Onboarding
 apiVersion: 65.0
 packageDir: dig-src
 ---

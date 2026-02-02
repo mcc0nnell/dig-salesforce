@@ -6,7 +6,15 @@
         <members>MermaidRenderService</members>
         <members>MermaidSecrets</members>
         <members>MermaidRenderService_Test</members>
+        <members>EmissionService</members>
+        <members>EmissionAppendAction</members>
         <name>ApexClass</name>
+    </types>
+    <types>
+        <members>Emission__c.MembershipTerm__c</members>
+        <members>Emission__c.ReceiptRef__c</members>
+        <members>Emission__c.Sequence_Num__c</members>
+        <name>CustomField</name>
     </types>
     <types>
         <members>mermaidIntake</members>
@@ -14,6 +22,7 @@
     </types>
     <types>
         <members>Mermaid_Intake_Perms</members>
+        <members>DIG_Emissions_Perms</members>
         <name>PermissionSet</name>
     </types>
     <types>
