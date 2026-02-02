@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Path_Or_Url__c</fullName>
+    <label>Path or URL</label>
+    <type>Text</type>
+    <length>255</length>
+    <required>false</required>
+</CustomField>

@@ -1,0 +1,25 @@
+.monospace textarea,
+.monospace .slds-textarea {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.preview-box {
+    border: 1px solid #d8dde6;
+    border-radius: 0.25rem;
+    background: #ffffff;
+    min-height: 240px;
+    padding: 0.75rem;
+    overflow: auto;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5rem 1rem;
+    padding: 0.5rem 0;
+}
+
+.status-label {
+    font-weight: 600;
+    margin-right: 0.25rem;
+}

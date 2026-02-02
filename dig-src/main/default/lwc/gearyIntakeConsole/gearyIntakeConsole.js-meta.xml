@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>60.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Geary Intake Console</masterLabel>
+    <description>Geary intake console for Mermaid previews and bounded blueprint export.</description>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__RecordPage,lightning__HomePage">
+            <property name="mode" type="String" label="Mode" description="LIVE or OFFLINE" default="OFFLINE"/>
+            <property name="keyPresent" type="Boolean" label="Key Present" description="Whether a key is configured" default="false"/>
+            <property name="workerHost" type="String" label="Worker Host" description="Runner host label" default="local"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

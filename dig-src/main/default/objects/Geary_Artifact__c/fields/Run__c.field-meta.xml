@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Run__c</fullName>
+    <label>Geary Run</label>
+    <type>Lookup</type>
+    <referenceTo>Geary_Run__c</referenceTo>
+    <relationshipName>Artifacts</relationshipName>
+    <relationshipLabel>Geary Artifacts</relationshipLabel>
+    <required>false</required>
+</CustomField>

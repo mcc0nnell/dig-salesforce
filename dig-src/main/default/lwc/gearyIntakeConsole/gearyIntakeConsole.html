@@ -1,0 +1,90 @@
+<template>
+    <lightning-card title="Geary Intake Console" icon-name="utility:build">
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-wrap slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_small">
+                    <div class="slds-text-title_caps slds-m-bottom_x-small">Mermaid Input</div>
+                    <lightning-textarea
+                        class="monospace"
+                        label="Mermaid (.mmd)"
+                        value={mermaidText}
+                        onchange={handleMermaidChange}
+                        placeholder="graph TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Approve]"
+                        rows="12">
+                    </lightning-textarea>
+                    <lightning-input
+                        class="slds-m-top_small"
+                        label="Upload .mmd"
+                        type="file"
+                        accept=".mmd,.txt"
+                        onchange={handleFileChange}>
+                    </lightning-input>
+                    <div class="slds-m-top_small slds-grid slds-wrap slds-gutters_small">
+                        <div class="slds-col">
+                            <lightning-button variant="brand" label="Render Preview" onclick={handleRenderPreview} disabled={isBusy}></lightning-button>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-button label="Generate Blueprint" onclick={handleGenerateBlueprint} disabled={isBusy}></lightning-button>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-button label="Validate Blueprint" onclick={handleValidateBlueprint} disabled={isBusy}></lightning-button>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-button variant="brand-outline" label="Export Bundle" onclick={handleExportBundle} disabled={isBusy}></lightning-button>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_small">
+                    <div class="slds-text-title_caps slds-m-bottom_x-small">Preview (SVG)</div>
+                    <div class="preview-box">
+                        <div class="geary-svg-container" lwc:dom="manual"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slds-grid slds-wrap slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_small">
+                    <div class="slds-text-title_caps slds-m-bottom_x-small">Blueprint JSON</div>
+                    <lightning-textarea class="monospace" value={blueprintJson} label="Blueprint" rows="10" read-only></lightning-textarea>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_small">
+                    <div class="slds-text-title_caps slds-m-bottom_x-small">Receipt</div>
+                    <lightning-textarea class="monospace" value={receiptJson} label="Receipt" rows="10" read-only></lightning-textarea>
+                    <div class="slds-m-top_small slds-grid slds-gutters_small">
+                        <div class="slds-col">
+                            <lightning-button label="Copy Receipt" onclick={handleCopyReceipt} disabled={disableCopyReceipt}></lightning-button>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-button label="Copy Run ID" onclick={handleCopyRunId} disabled={disableCopyRunId}></lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slds-grid slds-wrap slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-1">
+                    <div class="slds-text-title_caps slds-m-bottom_x-small">Emissions (NDJSON)</div>
+                    <lightning-textarea class="monospace" value={emissionsNdjson} label="Emissions" rows="6" read-only></lightning-textarea>
+                </div>
+            </div>
+
+            <div class="slds-grid slds-wrap slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-1">
+                    <div class="slds-text-title_caps slds-m-bottom_x-small">Status</div>
+                    <div class="status-grid">
+                        <div><span class="status-label">Mode</span> {modeLabel}</div>
+                        <div><span class="status-label">Key Present</span> {keyPresentLabel}</div>
+                        <div><span class="status-label">Worker Host</span> {workerHost}</div>
+                        <div><span class="status-label">Last Run ID</span> {lastRunId}</div>
+                    </div>
+                    <template if:true={statusMessage}>
+                        <div class="slds-text-color_success slds-m-top_x-small">{statusMessage}</div>
+                    </template>
+                    <template if:true={hasError}>
+                        <div class="slds-text-color_error slds-m-top_x-small">{errorCode}: {errorMessage}</div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+</template>

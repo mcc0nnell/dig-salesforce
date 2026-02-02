@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Geary Artifact</label>
+    <pluralLabel>Geary Artifacts</pluralLabel>
+    <nameField>
+        <label>Geary Artifact Number</label>
+        <type>AutoNumber</type>
+        <displayFormat>GA-{00000}</displayFormat>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ReadWrite</sharingModel>
+    <description>Stores Geary bundle artifacts and pointers.</description>
+</CustomObject>

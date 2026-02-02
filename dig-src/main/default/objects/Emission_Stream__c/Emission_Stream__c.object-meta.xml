@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Per-stream lock and allocator for Emission sequencing</description>
+    <enableFeeds>false</enableFeeds>
+    <label>Emission Stream</label>
+    <nameField>
+        <label>Emission Stream Name</label>
+        <type>Text</type>
+    </nameField>
+    <pluralLabel>Emission Streams</pluralLabel>
+    <sharingModel>Private</sharingModel>
+    <visibility>Public</visibility>
+</CustomObject>

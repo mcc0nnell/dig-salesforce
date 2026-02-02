@@ -1,0 +1,78 @@
+<template>
+    <lightning-card title="DIG Emissions">
+        <div class="slds-p-horizontal_small slds-p-bottom_small">
+            <div class="slds-grid slds-wrap slds-gutters">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <lightning-input
+                        label="RunId filter"
+                        value={runIdFilter}
+                        onchange={handleRunIdFilter}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <lightning-input
+                        label="Type filter"
+                        value={typeFilter}
+                        onchange={handleTypeFilter}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <lightning-combobox
+                        label="Level filter"
+                        value={levelFilter}
+                        options={levelOptions}
+                        onchange={handleLevelFilter}
+                    ></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <lightning-input
+                        type="toggle"
+                        label="Pause/Resume"
+                        checked={isPaused}
+                        onchange={handlePauseToggle}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+                    <lightning-button
+                        label="Clear"
+                        onclick={handleClear}
+                    ></lightning-button>
+                </div>
+            </div>
+        </div>
+
+        <div class="slds-grid slds-wrap slds-gutters slds-p-horizontal_small slds-p-bottom_small">
+            <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
+                <lightning-datatable
+                    key-field="id"
+                    data={filteredEvents}
+                    columns={columns}
+                    hide-checkbox-column
+                    max-row-selection="1"
+                    onrowselection={handleRowSelection}
+                ></lightning-datatable>
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                <lightning-card title="Detail">
+                    <template if:true={selectedEvent}>
+                        <div class="slds-p-around_small">
+                            <div class="slds-text-title_caps slds-m-bottom_x-small">Payload</div>
+                            <lightning-textarea value={selectedPayloadPretty} readonly></lightning-textarea>
+                            <div class="slds-text-title_caps slds-m-top_small">Hashes</div>
+                            <div class="slds-m-bottom_x-small"><strong>PrevHash:</strong> {selectedEvent.prevHash}</div>
+                            <div class="slds-m-bottom_x-small"><strong>Hash:</strong> {selectedEvent.hash}</div>
+                            <div class="slds-text-title_caps slds-m-top_small">Metadata</div>
+                            <div class="slds-m-bottom_x-small"><strong>IdempotencyKey:</strong> {selectedEvent.idempotencyKey}</div>
+                            <div class="slds-m-bottom_x-small"><strong>Source:</strong> {selectedEvent.source}</div>
+                            <div class="slds-m-bottom_x-small"><strong>At:</strong> {selectedEvent.at}</div>
+                            <div class="slds-m-bottom_x-small"><strong>IngestedAt:</strong> {selectedEvent.ingestedAt}</div>
+                        </div>
+                    </template>
+                    <template if:false={selectedEvent}>
+                        <div class="slds-p-around_small slds-text-color_weak">Select a row to view details.</div>
+                    </template>
+                </lightning-card>
+            </div>
+        </div>
+    </lightning-card>
+</template>

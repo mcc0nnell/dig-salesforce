@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Geary Run</label>
+    <pluralLabel>Geary Runs</pluralLabel>
+    <nameField>
+        <label>Geary Run Number</label>
+        <type>AutoNumber</type>
+        <displayFormat>GR-{00000}</displayFormat>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ReadWrite</sharingModel>
+    <description>Tracks Geary intake runs, receipts, and hashes.</description>
+</CustomObject>

@@ -7,15 +7,15 @@
     <locationX>0</locationX>
     <locationY>0</locationY>
     <connector>
-      <targetReference>Summit_Sample_Recipe__End_End</targetReference>
+      <targetReference>Sample__End_End</targetReference>
     </connector>
   </start>
   <end>
-    <name>Summit_Sample_Recipe__End_End</name>
+    <name>Sample__End_End</name>
     <label>End</label>
   </end>
-  <interviewLabel>Summit_Sample_Recipe {!$Flow.CurrentDateTime}</interviewLabel>
-  <label>Summit_Sample_Recipe</label>
+  <interviewLabel>Sample {!$Flow.CurrentDateTime}</interviewLabel>
+  <label>Sample</label>
   <processMetadataValues>
     <name>BuilderType</name>
     <value>
