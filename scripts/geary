@@ -6,6 +6,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POLICY_FILE="$ROOT/geary/config/policy.json"
 LOG_DIR="$ROOT/logs"
 LOG_FILE="$LOG_DIR/geary-audit.ndjson"
+# Ensure log directory exists before any redirections (>> "$LOG_FILE") occur.
+mkdir -p "$LOG_DIR"
 
 CURRENT_CMD=""
 CURRENT_MANIFEST=""

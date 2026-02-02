@@ -5,6 +5,7 @@ import re
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape
 
 FLOW_SUFFIX = ".flow-meta.xml"
 REPORT_SUFFIX = ".report-meta.xml"
@@ -117,6 +118,67 @@ def write_manifest(path: Path, api_version: str, members_by_type):
     lines.append(f"  <version>{api_version}</version>")
     lines.append("</Package>")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _slice_registry_model(elem: ET.Element):
+    attrs = list(elem.attrib.items())
+    children = [_slice_registry_model(child) for child in list(elem)]
+    text = elem.text.strip() if elem.text and elem.text.strip() else None
+    return {"tag": elem.tag, "attrs": attrs, "children": children, "text": text}
+
+
+def _render_slice_registry_value(value: str) -> str:
+    return escape(value, {'"': "&quot;"})
+
+
+def _render_slice_registry_elem(model, level: int, lines: list[str]) -> None:
+    indent = "    " * level
+    tag = model["tag"]
+    attrs = model["attrs"]
+    children = model["children"]
+    text = model["text"]
+
+    if children:
+        if attrs:
+            attr_text = " ".join(f'{key}="{_render_slice_registry_value(value)}"' for key, value in attrs)
+            lines.append(f"{indent}<{tag} {attr_text}>")
+        else:
+            lines.append(f"{indent}<{tag}>")
+        for child in children:
+            _render_slice_registry_elem(child, level + 1, lines)
+        lines.append(f"{indent}</{tag}>")
+        return
+
+    if text is not None:
+        if attrs:
+            attr_text = " ".join(f'{key}="{_render_slice_registry_value(value)}"' for key, value in attrs)
+            lines.append(f"{indent}<{tag} {attr_text}>{_render_slice_registry_value(text)}</{tag}>")
+        else:
+            lines.append(f"{indent}<{tag}>{_render_slice_registry_value(text)}</{tag}>")
+        return
+
+    if attrs:
+        lines.append(f"{indent}<{tag}")
+        for idx, (key, value) in enumerate(attrs):
+            suffix = " />" if idx == len(attrs) - 1 else ""
+            lines.append(f"{indent}    {key}=\"{_render_slice_registry_value(value)}\"{suffix}")
+        return
+
+    lines.append(f"{indent}<{tag} />")
+
+
+def round_trip_slice_registry_xml(path: Path) -> bool:
+    tree = ET.parse(path)
+    root = tree.getroot()
+    model = _slice_registry_model(root)
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>']
+    _render_slice_registry_elem(model, 0, lines)
+    rendered = "\n".join(lines) + "\n"
+    current = path.read_text(encoding="utf-8")
+    if current == rendered:
+        return False
+    path.write_text(rendered, encoding="utf-8")
+    return True
 
 
 def ensure_alias_file(alias_path: Path, slice_names):
@@ -834,6 +896,10 @@ def main():
     (out_dir / "slices.md").write_text("\n".join(md_lines) + "\n", encoding="utf-8")
 
     ensure_alias_file(root / "geary" / "slices.yml", slice_names)
+
+    slice_registry_path = root / "docs" / "slices" / "dig.xml"
+    if slice_registry_path.exists():
+        round_trip_slice_registry_xml(slice_registry_path)
 
     summary = {
         "customObjects": len(custom_objects),

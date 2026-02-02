@@ -5,6 +5,8 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +20,13 @@ from pathlib import Path
 
 DEFAULT_WORKER_URL = "https://geary-mermaid-runner-v1.stokoe.workers.dev"
 MAX_MERMAID_BYTES = 200 * 1024
+REPAIR_SCHEMA_VERSION = "0.1.2"
+REPAIR_ALLOWED_TARGETS = {
+    "DigSlaScheduler": {"kind": "apex_class"},
+    "DIG_Membership_Screened_Onboarding": {"kind": "flow"},
+    "Summit_Sample_Recipe": {"kind": "flow"},
+}
+REPAIR_BOUNDS_DEFAULT = {"max_apex_classes": 1, "max_flows": 2, "allow_lwc": False}
 
 
 def parse_args():
@@ -93,6 +102,15 @@ def parse_args():
     replay.add_argument("run_id", help="Run id to replay")
     replay.add_argument("--root", default=".", help="Repo root")
     replay.add_argument("--runs-dir", help="Override runs directory")
+
+    repair = subparsers.add_parser("repair", help="Generate a repair bundle from validate log")
+    repair.add_argument("--root", default=".", help="Repo root")
+    repair.add_argument("--from-validate-log", required=True, help="Path to make dig-validate output")
+    repair.add_argument("--out", help="Bundle output directory")
+
+    apply = subparsers.add_parser("apply", help="Apply a repair bundle")
+    apply.add_argument("--root", default=".", help="Repo root")
+    apply.add_argument("--bundle", required=True, help="Repair bundle directory")
 
     return parser.parse_args()
 
@@ -606,6 +624,10 @@ def isoformat_utc(dt: datetime.datetime) -> str:
     return dt.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def file_sha256(path: Path) -> str:
+    return sha256_digest(path.read_bytes())
+
+
 def get_runs_dir(root: Path, override: str | None = None) -> Path:
     value = override or os.environ.get("GEARY_RUNS_DIR") or "./runs"
     path = Path(value)
@@ -629,13 +651,775 @@ def append_emission(emissions_path: Path, run_id: str, event_type: str, data: di
     }
     emissions_path.parent.mkdir(parents=True, exist_ok=True)
     with emissions_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+        handle.write(json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
 def write_receipt(path: Path, receipt: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(receipt, indent=2, ensure_ascii=False)
     path.write_text(payload + "\n", encoding="utf-8")
+
+
+def resolve_target_path(root: Path, target: str, kind: str) -> Path:
+    package_dirs = resolve_package_dirs(root)
+    if kind == "flow":
+        rel_path = f"flows/{target}.flow-meta.xml"
+    else:
+        rel_path = f"classes/{target}.cls"
+    for package_dir in package_dirs:
+        candidate = package_dir / "main" / "default" / rel_path
+        if candidate.exists():
+            return candidate
+    return package_dirs[0] / "main" / "default" / rel_path
+
+
+def extract_target_errors(log_text: str, target: str) -> list[str]:
+    hits = []
+    target_file = f"{target}.flow-meta.xml"
+    target_class = f"{target}.cls"
+    for line in log_text.splitlines():
+        if target in line or target_file in line or target_class in line:
+            hits.append(line.rstrip())
+    return hits
+
+
+def parse_validate_log(log_path: Path, root: Path) -> tuple[list[dict], list[str]]:
+    log_text = log_path.read_text(encoding="utf-8", errors="replace")
+    targets = []
+    notes = []
+    for target, meta in REPAIR_ALLOWED_TARGETS.items():
+        if target not in log_text and f"{target}.flow-meta.xml" not in log_text and f"{target}.cls" not in log_text:
+            continue
+        kind = meta["kind"]
+        errors = extract_target_errors(log_text, target)
+        hints = []
+        resave_required = False
+        resave_reason = ""
+        resave_linecol = ""
+        if kind == "flow":
+            if any("nextLabel" in line or "Next Label" in line for line in errors):
+                hints.append("next_label_invalid")
+            def pick_flow_order_line(lines: list[str]) -> str:
+                preferred = None
+                fallback = None
+                for entry in lines:
+                    if "invalid at this location in type Flow" not in entry:
+                        continue
+                    fallback = fallback or entry
+                    if "actions invalid at this location in type Flow" in entry:
+                        preferred = entry
+                        break
+                return preferred or fallback or ""
+
+            selected = pick_flow_order_line(errors)
+            if selected:
+                resave_required = True
+                resave_reason = "flow_element_order_invalid"
+                match = re.search(r"\((\d+:\d+)\)", selected)
+                if match:
+                    resave_linecol = match.group(1)
+        if kind == "apex_class":
+            if any("Unexpected token 'by'" in line or 'Unexpected token "by"' in line for line in errors):
+                hints.append("unexpected_token_by")
+            if any("Expression cannot be assigned" in line for line in errors):
+                hints.append("expression_cannot_be_assigned")
+        path = resolve_target_path(root, target, kind)
+        if not path.exists():
+            notes.append(f"missing path for {target}: {path}")
+        targets.append(
+            {
+                "target": target,
+                "kind": kind,
+                "path": str(path),
+                "errors": errors,
+                "hints": hints,
+                "resave_required": resave_required,
+                "resave_reason": resave_reason,
+                "resave_linecol": resave_linecol,
+                "orphaned": False,
+            }
+        )
+    return targets, notes
+
+
+def list_org_flows(target_org: str) -> tuple[set[str], str]:
+    cmd = ["sf", "org", "list", "metadata", "--metadata-type", "Flow", "--target-org", target_org]
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as exc:
+        return set(), f"org list metadata failed: {exc.returncode}"
+    flows = set()
+    for line in (result.stdout or "").splitlines():
+        name = line.strip()
+        if not name or name.lower().startswith("fullname"):
+            continue
+        if " " in name:
+            name = name.split()[0]
+        flows.add(name)
+    return flows, ""
+
+
+def validate_repair_blueprint(blueprint: dict) -> list[str]:
+    errors = []
+    if blueprint.get("schema_version") != REPAIR_SCHEMA_VERSION:
+        errors.append(f"schema_version must be {REPAIR_SCHEMA_VERSION}")
+    bounds = blueprint.get("bounds")
+    if not isinstance(bounds, dict):
+        errors.append("bounds must be an object")
+        bounds = {}
+    max_apex = bounds.get("max_apex_classes")
+    max_flows = bounds.get("max_flows")
+    allow_lwc = bounds.get("allow_lwc")
+    if not isinstance(max_apex, int):
+        errors.append("bounds.max_apex_classes must be an integer")
+    if not isinstance(max_flows, int):
+        errors.append("bounds.max_flows must be an integer")
+    if allow_lwc is not False:
+        errors.append("bounds.allow_lwc must be false")
+    if isinstance(max_apex, int) and max_apex > 1:
+        errors.append("bounds.max_apex_classes must be <= 1")
+    if isinstance(max_flows, int) and max_flows > 2:
+        errors.append("bounds.max_flows must be <= 2")
+    operations = blueprint.get("operations")
+    if operations is None:
+        return errors
+    if not isinstance(operations, list):
+        errors.append("operations must be a list")
+        return errors
+    apex_count = 0
+    flow_count = 0
+    for idx, op in enumerate(operations, start=1):
+        if not isinstance(op, dict):
+            errors.append(f"operations[{idx}] must be an object")
+            continue
+        op_type = op.get("op")
+        if op_type not in {"create_or_update", "resave_required"}:
+            errors.append(f"operations[{idx}].op must be create_or_update or resave_required")
+        kind = op.get("kind")
+        target = op.get("target")
+        if kind not in {"apex_class", "flow"}:
+            errors.append(f"operations[{idx}].kind must be apex_class or flow")
+        if target not in REPAIR_ALLOWED_TARGETS:
+            errors.append(f"operations[{idx}].target must be an allowed target")
+        if op_type == "resave_required" and kind != "flow":
+            errors.append(f"operations[{idx}].kind must be flow when op is resave_required")
+        if kind == "apex_class":
+            apex_count += 1
+        if kind == "flow":
+            flow_count += 1
+    if isinstance(max_apex, int) and apex_count > max_apex:
+        errors.append("operations exceed bounds.max_apex_classes")
+    if isinstance(max_flows, int) and flow_count > max_flows:
+        errors.append("operations exceed bounds.max_flows")
+    return errors
+
+
+def build_repair_blueprint(run_id: str, targets: list[dict], validate_log_name: str) -> dict:
+    operations = []
+    for item in targets:
+        op_type = "create_or_update"
+        if item.get("resave_required"):
+            op_type = "resave_required"
+        operations.append(
+            {
+                "op": op_type,
+                "kind": item["kind"],
+                "target": item["target"],
+                "path": item["path"],
+                "hints": item.get("hints", []),
+                "next_label_count": item.get("next_label_count"),
+                "back_label_count": item.get("back_label_count"),
+                "resave_reason": item.get("resave_reason"),
+                "resave_linecol": item.get("resave_linecol"),
+                "orphaned": item.get("orphaned", False),
+            }
+        )
+    return {
+        "schema_version": REPAIR_SCHEMA_VERSION,
+        "run_id": run_id,
+        "created_at": isoformat_utc(utc_now()),
+        "bounds": dict(REPAIR_BOUNDS_DEFAULT),
+        "operations": operations,
+        "targets": [item["target"] for item in targets],
+        "source": {"validate_log": validate_log_name},
+    }
+
+
+def write_repair_plan(path: Path, targets: list[dict], notes: list[str]):
+    plan = {
+        "targets": [
+            {
+                "name": item["target"],
+                "kind": item["kind"],
+                "path": item["path"],
+                "hints": item.get("hints", []),
+                "next_label_count": item.get("next_label_count"),
+                "back_label_count": item.get("back_label_count"),
+                "resave_required": item.get("resave_required", False),
+                "resave_reason": item.get("resave_reason", ""),
+                "resave_linecol": item.get("resave_linecol", ""),
+                "orphaned": item.get("orphaned", False),
+            }
+            for item in targets
+        ],
+        "notes": notes,
+    }
+    path.write_text(json.dumps(plan, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def write_resave_instructions(path: Path, flow_names: list[str]):
+    lines = [
+        "# Flow Resave Required",
+        "",
+        "At least one flow must be re-saved in Flow Builder to resolve schema/order drift.",
+        "",
+        "Steps:",
+        "1) Setup → Flows",
+        "2) Open the flow",
+        "3) Edit → Save → (Activate if needed)",
+        "4) Retrieve updated metadata:",
+        "   sf project retrieve start --metadata \"Flow:<FlowApiName>\"",
+        "5) Re-run:",
+        "   make dig-validate",
+    ]
+    if flow_names:
+        lines.append("")
+        lines.append("Flows to resave:")
+        for name in flow_names:
+            lines.append(f"- {name}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_orphan_report(path: Path, flow_names: list[str]):
+    lines = [
+        "# Orphaned Flow Artifacts",
+        "",
+        "These flows are not present in the org and should be removed locally.",
+        "",
+        "Org check (expect no match):",
+        "  sf org list metadata --metadata-type Flow --target-org deafingov | rg -n \"<FlowApiName>\"",
+    ]
+    for name in flow_names:
+        lines.append(f"  # no match for {name}")
+    lines.extend([
+        "",
+        "Suggested removal:",
+    ])
+    for name in flow_names:
+        lines.append(f"  git rm dig-src/main/default/flows/{name}.flow-meta.xml")
+    lines.extend([
+        "",
+        "Reference cleanup search:",
+        "  rg -n \"<FlowApiName>\" manifest docs scripts dig-src",
+        "",
+        "Retrieve real flows:",
+        "  sf project retrieve start --metadata \"Flow:DIG_Membership_OnCreate\" --target-org deafingov",
+        "  sf project retrieve start --metadata \"Flow:DIG_Membership_OnUpdate_Status\" --target-org deafingov",
+        "",
+        "Re-validate:",
+        "  make dig-validate",
+    ])
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+def count_flow_screen_labels(path: Path) -> dict:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    in_screen = False
+    in_next_label = False
+    next_count = 0
+    back_count = 0
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("<screens") and not stripped.startswith("</screens"):
+            in_screen = True
+        if in_screen and "<nextLabel" in stripped:
+            in_next_label = True
+        if in_screen and "<backLabel" in stripped:
+            back_count += 1
+        if in_next_label:
+            if "</nextLabel>" in stripped:
+                in_next_label = False
+                next_count += 1
+            continue
+        if in_screen and stripped.startswith("</screens"):
+            in_screen = False
+    return {"nextLabel": next_count, "backLabel": back_count}
+
+
+def patch_flow_next_label(path: Path, expected_count: int | None, expected_back: int | None) -> tuple[bool, str, str]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    in_screen = False
+    in_next_label = False
+    in_back_label = False
+    changed = False
+    found_next_label = False
+    found_back_label = False
+    output = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("<screens") and not stripped.startswith("</screens"):
+            in_screen = True
+        if in_screen and "<nextLabel" in stripped:
+            found_next_label = True
+            in_next_label = True
+        if in_screen and "<backLabel" in stripped:
+            found_back_label = True
+            in_back_label = True
+        if in_next_label:
+            changed = True
+            if "</nextLabel>" in stripped:
+                in_next_label = False
+            continue
+        if in_back_label:
+            changed = True
+            if "</backLabel>" in stripped:
+                in_back_label = False
+            continue
+        if in_screen and stripped.startswith("</screens"):
+            in_screen = False
+        output.append(line)
+    if not found_next_label and not found_back_label:
+        if (expected_count or 0) == 0 and (expected_back or 0) == 0:
+            return False, "SCREEN_LABELS_MISSING", "screen labels not found; flow likely needs Flow Builder re-save"
+        return False, "", ""
+    if changed:
+        path.write_text("\n".join(output) + "\n", encoding="utf-8")
+    return changed, "", ""
+
+
+def patch_apex_dig_sla(path: Path, hints: list[str]) -> tuple[str, bool]:
+    content = path.read_text(encoding="utf-8")
+    if "unexpected_token_by" in hints or "expression_cannot_be_assigned" in hints:
+        if re.search(r"\bDatetime\s+by\b", content):
+            updated = re.sub(r"\bDatetime\s+by\b", "Datetime byDt", content)
+            updated = re.sub(r"\bby\b", "byDt", updated)
+            if updated != content:
+                path.write_text(updated, encoding="utf-8")
+                return "patched", True
+        if "byDt" in content and "Datetime by" not in content:
+            return "skipped", False
+    stub = (
+        "global class DigSlaScheduler implements Schedulable {\n"
+        "  global void execute(SchedulableContext sc) {\n"
+        "    // TODO: restore SLA logic after validation is green.\n"
+        "  }\n"
+        "}\n"
+    )
+    if content != stub:
+        path.write_text(stub, encoding="utf-8")
+        return "stubbed", True
+    return "skipped", False
+
+
+def run_repair(root: Path, args):
+    log_path = Path(args.from_validate_log)
+    if not log_path.is_absolute():
+        log_path = root / log_path
+    if not log_path.exists():
+        print(f"Validate log not found: {log_path}", file=sys.stderr)
+        return 2
+
+    run_id = generate_run_id()
+    bundle_dir = Path(args.out) if args.out else (root / "runs" / "repair-pack" / run_id)
+    if not bundle_dir.is_absolute():
+        bundle_dir = root / bundle_dir
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+
+    emissions_path = bundle_dir / "emissions.ndjson"
+    receipt_path = bundle_dir / "receipt.json"
+    started_at = utc_now()
+    append_emission(emissions_path, run_id, "run.started", {"command": "repair", "bundle": str(bundle_dir)})
+
+    targets, notes = parse_validate_log(log_path, root)
+    for item in targets:
+        if item.get("kind") == "flow":
+            path = Path(item.get("path", ""))
+            if path.exists():
+                label_counts = count_flow_screen_labels(path)
+                item["next_label_count"] = label_counts.get("nextLabel")
+                item["back_label_count"] = label_counts.get("backLabel")
+    append_emission(
+        emissions_path,
+        run_id,
+        "validate_log.parsed",
+        {"path": str(log_path), "targets": [item["target"] for item in targets]},
+    )
+
+    resave_targets = [item["target"] for item in targets if item.get("resave_required")]
+    org_flows = set()
+    org_error = ""
+    if resave_targets:
+        org_flows, org_error = list_org_flows("deafingov")
+        if org_error:
+            notes.append(org_error)
+    orphaned = [name for name in resave_targets if org_flows and name not in org_flows]
+    if orphaned:
+        for item in targets:
+            if item["target"] in orphaned:
+                item["orphaned"] = True
+
+    if not targets:
+        receipt = {
+            "schema_version": REPAIR_SCHEMA_VERSION,
+            "run_id": run_id,
+            "mode": "offline",
+            "status": "fail",
+            "targets": [],
+            "patches": [],
+            "validate": {
+                "command": "make dig-validate",
+                "exit_code": -1,
+                "summary": "no recognized repair targets in validate log",
+            },
+            "started_at": isoformat_utc(started_at),
+            "finished_at": isoformat_utc(utc_now()),
+        }
+        write_receipt(receipt_path, receipt)
+        append_emission(emissions_path, run_id, "run.failed", {"error_code": "NO_TARGETS"})
+        append_emission(emissions_path, run_id, "run.completed", {"status": "fail"})
+        return 1
+
+    validate_log_name = "validate.log"
+    shutil.copyfile(log_path, bundle_dir / validate_log_name)
+    blueprint = build_repair_blueprint(run_id, targets, validate_log_name)
+    blueprint_path = bundle_dir / "blueprint.json"
+    blueprint_path.write_text(json.dumps(blueprint, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    append_emission(
+        emissions_path,
+        run_id,
+        "blueprint.generated",
+        {"path": str(blueprint_path), "targets": [item["target"] for item in targets]},
+    )
+
+    resave_flows = [item["target"] for item in targets if item.get("resave_required") and not item.get("orphaned")]
+    orphaned_flows = [item["target"] for item in targets if item.get("orphaned")]
+    if resave_flows:
+        instructions_path = bundle_dir / "resave_instructions.md"
+        write_resave_instructions(instructions_path, resave_flows)
+        append_emission(
+            emissions_path,
+            run_id,
+            "flow.resave_required",
+            {"targets": resave_flows, "instructions": str(instructions_path)},
+        )
+    if orphaned_flows:
+        orphan_path = bundle_dir / "orphan_report.md"
+        write_orphan_report(orphan_path, orphaned_flows)
+        append_emission(
+            emissions_path,
+            run_id,
+            "flow.orphaned_artifact",
+            {"targets": orphaned_flows, "report": str(orphan_path)},
+        )
+
+    validation_errors = validate_repair_blueprint(blueprint)
+    if validation_errors:
+        append_emission(
+            emissions_path,
+            run_id,
+            "blueprint.validated",
+            {"status": "fail", "errors": validation_errors},
+        )
+        receipt = {
+            "schema_version": REPAIR_SCHEMA_VERSION,
+            "run_id": run_id,
+            "mode": "offline",
+            "status": "fail",
+            "targets": [item["target"] for item in targets],
+            "patches": [],
+            "validate": {
+                "command": "make dig-validate",
+                "exit_code": -1,
+                "summary": "; ".join(validation_errors),
+            },
+            "started_at": isoformat_utc(started_at),
+            "finished_at": isoformat_utc(utc_now()),
+        }
+        write_receipt(receipt_path, receipt)
+        append_emission(emissions_path, run_id, "run.failed", {"error_code": "BLUEPRINT_INVALID"})
+        append_emission(emissions_path, run_id, "run.completed", {"status": "fail"})
+        return 1
+
+    append_emission(emissions_path, run_id, "blueprint.validated", {"status": "ok"})
+    plan_path = bundle_dir / "plan.json"
+    write_repair_plan(plan_path, targets, notes)
+    receipt = {
+        "schema_version": REPAIR_SCHEMA_VERSION,
+        "run_id": run_id,
+        "mode": "offline",
+        "status": "ok",
+        "targets": [item["target"] for item in targets],
+        "patches": [],
+        "validate": {"command": "make dig-validate", "exit_code": -1, "summary": "repair bundle generated"},
+        "started_at": isoformat_utc(started_at),
+        "finished_at": isoformat_utc(utc_now()),
+    }
+    write_receipt(receipt_path, receipt)
+    append_emission(emissions_path, run_id, "run.completed", {"status": "ok"})
+    print(f"Repair bundle created at {bundle_dir}")
+    return 0
+
+
+def run_apply(root: Path, args):
+    bundle_dir = Path(args.bundle)
+    if not bundle_dir.is_absolute():
+        bundle_dir = root / bundle_dir
+    blueprint_path = bundle_dir / "blueprint.json"
+    emissions_path = bundle_dir / "emissions.ndjson"
+    receipt_path = bundle_dir / "receipt.json"
+    if not blueprint_path.exists():
+        print(f"Missing blueprint.json in bundle: {bundle_dir}", file=sys.stderr)
+        return 2
+
+    blueprint = json.loads(blueprint_path.read_text(encoding="utf-8"))
+    run_id = blueprint.get("run_id") or generate_run_id()
+    started_at = utc_now()
+    append_emission(emissions_path, run_id, "run.started", {"command": "apply", "bundle": str(bundle_dir)})
+
+    validation_errors = validate_repair_blueprint(blueprint)
+    if validation_errors:
+        append_emission(
+            emissions_path,
+            run_id,
+            "blueprint.validated",
+            {"status": "fail", "errors": validation_errors},
+        )
+        receipt = {
+            "schema_version": REPAIR_SCHEMA_VERSION,
+            "run_id": run_id,
+            "mode": "offline",
+            "status": "fail",
+            "targets": blueprint.get("targets", []),
+            "patches": [],
+            "validate": {
+                "command": "make dig-validate",
+                "exit_code": -1,
+                "summary": "; ".join(validation_errors),
+            },
+            "started_at": isoformat_utc(started_at),
+            "finished_at": isoformat_utc(utc_now()),
+        }
+        write_receipt(receipt_path, receipt)
+        append_emission(emissions_path, run_id, "run.failed", {"error_code": "BLUEPRINT_INVALID"})
+        append_emission(emissions_path, run_id, "run.completed", {"status": "fail"})
+        return 1
+
+    append_emission(emissions_path, run_id, "blueprint.validated", {"status": "ok"})
+    operations = blueprint.get("operations") or []
+    operations = sorted(operations, key=lambda item: (item.get("kind", ""), item.get("target", "")))
+    append_emission(
+        emissions_path,
+        run_id,
+        "patch.planned",
+        {"targets": [item.get("target") for item in operations]},
+    )
+
+    patches = []
+    patch_failed = False
+    resave_required_found = False
+    findings = []
+    instructions_path = bundle_dir / "resave_instructions.md"
+    orphan_report_path = bundle_dir / "orphan_report.md"
+    for op in operations:
+        kind = op.get("kind")
+        target = op.get("target")
+        op_type = op.get("op")
+        path_value = op.get("path")
+        if not path_value:
+            path_value = str(resolve_target_path(root, target, kind))
+        path = Path(path_value)
+        if not path.is_absolute():
+            path = (root / path).resolve()
+        if not path.exists():
+            path = resolve_target_path(root, target, kind)
+        file_present = path.exists()
+        before_hash = file_sha256(path) if file_present else None
+        after_hash = before_hash
+        action = "skipped"
+        error_code = ""
+        error_message = ""
+        if op_type == "resave_required":
+            orphaned = bool(op.get("orphaned"))
+            if orphaned:
+                action = "orphaned_artifact"
+                error_code = "ORPHANED_ARTIFACT"
+                removal_cmd = f"git rm {path}"
+                error_message = f"orphaned_flow; see {orphan_report_path}; recommended: {removal_cmd}"
+                findings.append({"type": "orphaned_artifact", "target": target})
+                resave_required_found = True
+                if orphan_report_path.exists():
+                    append_emission(
+                        emissions_path,
+                        run_id,
+                        "flow.orphaned_artifact",
+                        {
+                            "target": target,
+                            "report": str(orphan_report_path),
+                        },
+                    )
+            else:
+                action = "resave_required"
+                error_code = "RESAVE_REQUIRED"
+                linecol = op.get("resave_linecol") or ""
+                reason = op.get("resave_reason") or "flow_element_order_invalid"
+                detail = f"{reason} {linecol}".strip()
+                error_message = detail
+                findings.append({"type": "resave_required", "target": target, "linecol": linecol})
+                resave_required_found = True
+                if instructions_path.exists():
+                    append_emission(
+                        emissions_path,
+                        run_id,
+                        "flow.resave_required",
+                        {
+                            "target": target,
+                            "reason": reason,
+                            "linecol": linecol,
+                            "instructions": str(instructions_path),
+                        },
+                    )
+            patches.append(
+                {
+                    "kind": kind,
+                    "name": target,
+                    "path": str(path),
+                    "before_hash": before_hash,
+                    "after_hash": after_hash,
+                    "action": action,
+                    "error_code": error_code,
+                    "error_message": error_message,
+                    "file_present": file_present,
+                }
+            )
+            append_emission(
+                emissions_path,
+                run_id,
+                "patch.applied",
+                {
+                    "target": target,
+                    "kind": kind,
+                    "path": str(path),
+                    "action": action,
+                    "before_hash": before_hash,
+                    "after_hash": after_hash,
+                    "error_code": error_code,
+                },
+            )
+            continue
+        if not file_present:
+            action = "failed"
+            error_code = "MISSING_PATH"
+            error_message = f"missing file: {path}"
+            patch_failed = True
+        elif kind == "flow":
+            expected_count = op.get("next_label_count")
+            expected_back = op.get("back_label_count")
+            changed, err_code, err_msg = patch_flow_next_label(path, expected_count, expected_back)
+            after_hash = file_sha256(path) if path.exists() else None
+            if err_code:
+                action = "failed"
+                error_code = err_code
+                error_message = err_msg
+                patch_failed = True
+            else:
+                action = "patched" if changed else "skipped"
+        elif kind == "apex_class":
+            action, changed = patch_apex_dig_sla(path, op.get("hints", []))
+            after_hash = file_sha256(path) if path.exists() else None
+            if action == "stubbed":
+                append_emission(
+                    emissions_path,
+                    run_id,
+                    "patch.stubbed",
+                    {"target": target, "path": str(path)},
+                )
+        else:
+            action = "failed"
+            error_code = "UNKNOWN_KIND"
+            error_message = f"unsupported kind: {kind}"
+            patch_failed = True
+
+        patches.append(
+            {
+                "kind": kind,
+                "name": target,
+                "path": str(path),
+                "before_hash": before_hash,
+                "after_hash": after_hash,
+                "action": action,
+                "error_code": error_code,
+                "error_message": error_message,
+                "file_present": file_present,
+            }
+        )
+        append_emission(
+            emissions_path,
+            run_id,
+            "patch.applied",
+            {
+                "target": target,
+                "kind": kind,
+                "path": str(path),
+                "action": action,
+                "before_hash": before_hash,
+                "after_hash": after_hash,
+                "error_code": error_code,
+            },
+        )
+
+    validate_exit = -1
+    validate_summary = ""
+    validate_status = "skipped"
+    try:
+        result = subprocess.run(
+            ["make", "dig-validate"],
+            cwd=str(root),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        validate_exit = result.returncode
+        combined = (result.stdout or "") + "\n" + (result.stderr or "")
+        tail = "\n".join(combined.strip().splitlines()[-12:])
+        validate_summary = tail
+        validate_status = "ok" if validate_exit == 0 else "fail"
+    except OSError as exc:
+        validate_exit = -1
+        validate_summary = f"validation failed to run: {exc}"
+        validate_status = "fail"
+
+    append_emission(
+        emissions_path,
+        run_id,
+        "validate.reran",
+        {"command": "make dig-validate", "exit_code": validate_exit, "status": validate_status},
+    )
+
+    if validate_exit == 0:
+        if any(item.get("action") in {"orphaned_artifact", "resave_required"} for item in patches):
+            status = "ok_with_findings"
+        else:
+            status = "ok"
+    else:
+        status = "fail"
+    receipt = {
+        "schema_version": REPAIR_SCHEMA_VERSION,
+        "run_id": run_id,
+        "mode": "offline",
+        "status": status,
+        "targets": blueprint.get("targets", []),
+        "findings": findings or None,
+        "patches": patches,
+        "validate": {"command": "make dig-validate", "exit_code": validate_exit, "summary": validate_summary},
+        "started_at": isoformat_utc(started_at),
+        "finished_at": isoformat_utc(utc_now()),
+    }
+    write_receipt(receipt_path, receipt)
+    if status == "ok":
+        append_emission(emissions_path, run_id, "run.completed", {"status": status})
+    else:
+        append_emission(emissions_path, run_id, "run.failed", {"error_code": "APPLY_FAILED"})
+        append_emission(emissions_path, run_id, "run.completed", {"status": status})
+    return 0 if status == "ok" else 1
 
 
 def load_dotenv_file(path: Path):
@@ -1868,6 +2652,10 @@ def main():
         if args.recipe_command == "install":
             run_recipe_install(root, args)
             return 0
+    if args.command == "repair":
+        return run_repair(root, args)
+    if args.command == "apply":
+        return run_apply(root, args)
     return 1
 
 
