@@ -26,6 +26,7 @@ bash scripts/catalog_lint.sh
 
 - Schema validation against `catalog/schema/slice.schema.json`
 - File existence for referenced manifests and docs
+- Deploy map validation for `deploy.manifests` and `deploy.packages` (must exist under `manifest/`)
 - Mermaid boundedness: `mermaid-intake` must not be included by `comms-web` or `comms-web-full`
 - X Geary Key allowlist: only allowed files may reference the header
 - Secret hygiene: no committed secret values (detects GEARY_KEY env var assignments or X Geary Key header values)

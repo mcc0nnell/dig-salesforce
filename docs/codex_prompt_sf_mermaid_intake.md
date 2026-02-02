@@ -21,7 +21,7 @@ Fields (API name → type):
 - `Mermaid__c` → Long Text Area(32768) **Required**
 - `TargetOrg__c` → Text(80) (store SF alias or org name; optional)
 - `TargetType__c` → Text(80) (e.g., `Flow`, `Metadata`, `Apex`; optional)
-- `TargetName__c` → Text(255) (e.g., `DIG_Membership_Screened_Onboarding`; optional)
+- `TargetName__c` → Text(255) (e.g., `DIG_Membership_OnCreate`; optional)
 - `OptionsJson__c` → Long Text Area(32768) (JSON; optional)
 - `RequestedBy__c` → Text(80) (UserId; optional)
 - `RequestedAt__c` → Date/Time (optional)

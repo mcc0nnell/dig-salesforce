@@ -25,6 +25,7 @@ python tools/geary/geary.py update --root .
 python tools/geary/geary.py list
 python tools/geary/geary.py graph
 python tools/geary/geary.py doctor --root .
+python tools/geary/geary.py doctor
 python tools/geary/geary.py install <slice-or-alias> --target-org deafingov --with-deps
 python tools/geary/geary.py install --all --target-org deafingov
 ```

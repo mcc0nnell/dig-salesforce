@@ -122,12 +122,13 @@ If Salesforce is the city, **Geary is the street crew**:
 
 ---
 
-## What’s next (roadmap vibes)
+## What's next (roadmap vibes)
 
-- **Golden keys pipeline**: stable “seed” automations that can be generated and reused
+- **Golden keys pipeline**: stable "seed" automations that can be generated and reused
 - **Comms engine**: Email-to-Case → routing → SLA → (optional) Agentforce drafting
 - **Governance results engine**: quorum/majority certification with immutable receipts
 - **Summit hardening**: capacity + accessibility gates + operational checklists
+- **Emissions Spine**: append-only, hash-chained event journal for deterministic auditing
 
 ---
 

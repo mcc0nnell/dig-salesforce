@@ -239,14 +239,14 @@ python tools/geary/geary.py replay <run_id>
 
 ## Emissions
 
-The emissions system is an append-only event journal backed by `Emission__c` (with `Stream_Seq__c`, `Stream__c`, `Sequence__c`, and idempotency helpers) and the allocator row `Emission_Stream__c` (`Name`, `Next_Sequence__c`, `Last_Hash__c`).
+The emissions spine is a Platform Event bus (`DIG_Emission__e`) with a durable sink (`DIG_Emission__c`) for evidence, audit, and replay. Each envelope is hash-chained and deterministic.
 
-- Read the full [emissions runbook](docs/emissions.md) for architecture, troubleshooting, and runbook commands.
+- Reference: [DIG Emissions spine](docs/dig/emissions.md)
+- Runbook: [Emissions runbook](docs/emissions-runbook.md)
 - Quick commands:
   ```bash
-  ./dig-verify-emissions-idem.sh deafingov
-  sf apex run --target-org deafingov --file scripts/emissions/seed-emission.apex
-  sf data query --target-org deafingov -q "SELECT Stream__c, Type__c, Sequence__c, Stream_Seq__c, COUNT(Id) c FROM Emission__c WHERE Stream__c='smoke' GROUP BY Stream__c, Type__c, Stream_Seq__c HAVING COUNT(Id) > 1"
+  sf apex run --target-org deafingov --file /tmp/dig-emissions-smoke.apex
+  sf data query --target-org deafingov -q "SELECT RunId__c, Seq__c, Type__c, PrevHash__c, Hash__c, IdempotencyKey__c, Anomaly__c FROM DIG_Emission__c WHERE RunId__c LIKE 'smoke-%' ORDER BY CreatedDate DESC LIMIT 10"
   ```
 
 ## Membership Engine (Apex-first, flowless core)
