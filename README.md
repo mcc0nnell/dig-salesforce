@@ -99,6 +99,12 @@ but the intent is consistent.
 make dig-validate
 ```
 
+### Validate + smoke check
+```
+make dig-validate-smoke ORG=deafingov
+```
+This runs `make dig-validate` and then executes `dig-smoke-membership-join.sh`, which posts two deterministic join requests and verifies the Contact/Membership_Term/Receipt state for the smoke email. Use it after deployments to prove idempotency.
+
 ### Deploy
 ```bash
 sf project deploy start --target-org deafingov --manifest manifest/membership-mvp-package.xml
@@ -135,6 +141,8 @@ Catalog compiler + lint gate: `bash scripts/catalog_lint.sh` (details in `docs/g
 Short, human-curated index of slices + dependencies.
 - Slice Index: `docs/catalog/index.md`
 - How the catalog works + how to add slices: `docs/geary/catalog.md`
+
+Catalog entries may include an optional `deploy` map (manifests/packages under `manifest/`). The lint gate validates these paths and the Slice Index surfaces them.
 
 ### Adding a new slice (quick)
 - Add a new entry under `catalog/examples/` with a unique `slice.id` + `slice.number`, and reference a tracked manifest.
@@ -178,6 +186,40 @@ node bin/run.js geary doctor --root ..
 
 See `sf-geary-plugin/README.md` for install and usage details.
 
+## Geary Runner (doctor/run/replay)
+
+Environment variables:
+- `GEARY_KEY` (required for live worker calls)
+- `WORKER_URL` (required for live worker calls)
+- `GEARY_RUNS_DIR` (optional, default `./runs`)
+
+Doctor (healthcheck):
+```bash
+python tools/geary/geary.py doctor
+python tools/geary/geary.py doctor --no-network
+```
+
+Run + receipts:
+```bash
+python tools/geary/geary.py run --in path/to/input.mmd --format svg --out /tmp/output.svg
+python tools/geary/geary.py run --stdin --format json < path/to/input.mmd
+```
+
+Runs directory layout (per run):
+```
+runs/<run_id>/
+  receipt.json
+  emissions.ndjson
+  artifacts/
+    input.mmd
+    output.svg or output.json
+```
+
+Replay + verification:
+```bash
+python tools/geary/geary.py replay <run_id>
+```
+
 ## Mermaid Intake — owned + bounded slice
 - [Mermaid Intake — owned + bounded slice](docs/geary/mermaid-intake.md)
 - Complete implementation including Apex classes, LWC component, and supporting files for Mermaid diagram intake functionality
@@ -190,6 +232,22 @@ See `sf-geary-plugin/README.md` for install and usage details.
 ## Runbooks
 - Comms schema + perms + apex + LWC deployment runbook (production-safe). See `docs/runbooks/comms-stack-deploy.md`.
 - Geary comms-web deterministic install change log. See `docs/notes/geary-comms-web-change-log.md`.
+- Emissions runbook — schema verification, smoke append, idempotency proof, dedupe check: see `docs/emissions-runbook.md`.
+
+## Docs
+- Emissions: see [docs/emissions-runbook.md](docs/emissions-runbook.md)
+
+## Emissions
+
+The emissions system is an append-only event journal backed by `Emission__c` (with `Stream_Seq__c`, `Stream__c`, `Sequence__c`, and idempotency helpers) and the allocator row `Emission_Stream__c` (`Name`, `Next_Sequence__c`, `Last_Hash__c`).
+
+- Read the full [emissions runbook](docs/emissions.md) for architecture, troubleshooting, and runbook commands.
+- Quick commands:
+  ```bash
+  ./dig-verify-emissions-idem.sh deafingov
+  sf apex run --target-org deafingov --file scripts/emissions/seed-emission.apex
+  sf data query --target-org deafingov -q "SELECT Stream__c, Type__c, Sequence__c, Stream_Seq__c, COUNT(Id) c FROM Emission__c WHERE Stream__c='smoke' GROUP BY Stream__c, Type__c, Stream_Seq__c HAVING COUNT(Id) > 1"
+  ```
 
 ## Membership Engine (Apex-first, flowless core)
 
@@ -277,12 +335,13 @@ If Salesforce is the city, **Geary is the street crew**:
 
 ---
 
-## What’s next (roadmap vibes)
+## What's next (roadmap vibes)
 
-- **Golden keys pipeline**: stable “seed” automations that can be generated and reused
+- **Golden keys pipeline**: stable "seed" automations that can be generated and reused
 - **Comms engine**: Email-to-Case → routing → SLA → (optional) Agentforce drafting
 - **Governance results engine**: quorum/majority certification with immutable receipts
 - **Summit hardening**: capacity + accessibility gates + operational checklists
+- **Emissions Spine**: append-only, hash-chained event journal for deterministic auditing
 
 ---
 
